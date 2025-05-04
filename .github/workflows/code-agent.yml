@@ -2,7 +2,7 @@ name: Code Agent Issue Processor
 
 on:
   issues:
-    types: [opened]
+    types: [opened, reopened]
 
 permissions:
   contents: write # Needed to checkout code, create branch, push changes, create PR
