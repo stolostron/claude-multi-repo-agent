@@ -136,7 +136,7 @@ jobs:
               git push origin "$BRANCH_NAME"
 
               # Generate summary using codex based on issue body and diff
-              AGENT_SUMMARY=$(mods -f --model "$MODS_MODEL" "Given the git diff and issue body: ${needs.process-issue.outputs.ISSUE_BODY}, generate a detailed summary in markdown format. Describe what was changed and why these changes were made. Only output the markdown, no explanation." < diff.txt)
+              AGENT_SUMMARY=$(mods -f --model "$MODS_MODEL" "Given the git diff and issue body: ${{ needs.process-issue.outputs.ISSUE_BODY }}, generate a detailed summary in markdown format. Describe what was changed and why these changes were made. Only output the markdown, no explanation." < diff.txt)
               if [[ -z "$AGENT_SUMMARY" ]]; then
                 AGENT_SUMMARY="Automated summary for code changes."
               fi
