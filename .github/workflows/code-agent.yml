@@ -172,6 +172,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.AGENT_GH_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
 
       - name: Create Pull Request
         if: steps.codex_agent.outputs.AGENT_SUCCESS == 'true'
