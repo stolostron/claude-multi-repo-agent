@@ -103,9 +103,10 @@ jobs:
             ORG="open-cluster-management-io"
           fi
 
-          # Clone the repository from the forked repo instead of upstream
-          git clone https://github.com/xuezhaojun/${{ matrix.repo }}.git
-          cd ${{ matrix.repo }}
+          # Fork the upstream repo if not already forked, then clone the fork
+          ORG_REPO="${{ matrix.repo }}"
+          gh repo fork "$ORG_REPO" --clone --remote --remote-name origin
+          cd $(basename "$ORG_REPO")
           git fetch origin
           git checkout main || git checkout master
           git pull
@@ -184,7 +185,11 @@ jobs:
         if: steps.codex_agent.outputs.AGENT_SUCCESS == 'true'
         run: |
           echo "Creating Pull Request..."
-          gh pr create --base main --head ${{ steps.codex_agent.outputs.BRANCH_NAME }} --title "${{ steps.codex_agent.outputs.PR_TITLE }}" --body "${{ steps.codex_agent.outputs.PR_BODY }}"
+          ORG_REPO="${{ matrix.repo }}"
+          ORG=$(echo "$ORG_REPO" | cut -d'/' -f1)
+          REPO=$(echo "$ORG_REPO" | cut -d'/' -f2)
+          # Always create PR to upstream repo, head is xuezhaojun:BRANCH_NAME
+          gh pr create --repo "$ORG/$REPO" --base main --head "xuezhaojun:${{ steps.codex_agent.outputs.BRANCH_NAME }}" --title "${{ steps.codex_agent.outputs.PR_TITLE }}" --body "${{ steps.codex_agent.outputs.PR_BODY }}"
         env:
           GH_TOKEN: ${{ secrets.AGENT_GH_TOKEN }}
 
