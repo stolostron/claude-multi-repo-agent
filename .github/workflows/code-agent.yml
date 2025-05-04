@@ -20,14 +20,6 @@ jobs:
     runs-on: ubuntu-latest
     if: contains('["xuezhaojun", "zhujian7", "qiujian16", "zhiweiyin318", "haoqing0110", "elgnay"]', github.event.issue.user.login)
     steps:
-      - name: Setup Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: "stable"
-
-      - name: Install mods using go install
-        run: go install github.com/charmbracelet/mods@latest
-
       - name: Get Issue Details
         id: issue_details
         run: |
@@ -38,19 +30,15 @@ jobs:
           echo "ISSUE_AUTHOR=${{ github.event.issue.user.login }}" >> $GITHUB_OUTPUT
         shell: bash
 
-      - name: Extract Information using mods
+      - name: Extract checked repositories
         id: extract_information
         run: |
-          # Use mods to extract the selected repositories from the issue body as a JSON array
-          echo "Extracting target repositories from issue body using mods..."
-          REPOS=$(echo "${{ steps.issue_details.outputs.ISSUE_BODY }}" | mods --model "$MODS_MODEL" --format json --prompt "From the following GitHub issue body, extract only the repository names that are checked (with [x]) in the 'Target Repositories' section. Output only a JSON array of repository names, without any code block, explanation, or extra text.")
-          REPOS=$(echo "$REPOS" | sed '/^```/d')
+          # Extract checked repositories from the issue body as a JSON array
+          REPOS=$(echo "${{ steps.issue_details.outputs.ISSUE_BODY }}" | grep '^\- \[x\]' | sed -E 's/^\- \[x\] //' | jq -R . | jq -s .)
           echo "TARGET_REPOS<<EOF" >> $GITHUB_OUTPUT
           echo "$REPOS" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
         shell: bash
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
     outputs:
       repos: ${{ steps.extract_information.outputs.TARGET_REPOS }}
       ISSUE_NUMBER: ${{ steps.issue_details.outputs.ISSUE_NUMBER }}
@@ -147,6 +135,7 @@ jobs:
               fi
               PR_BODY="$ISSUE_LINK_MARKDOWN$PR_BODY"
               echo "Pushing changes to origin..."
+              git remote set-url origin https://xuezhaojun:${GITHUB_TOKEN}@github.com/xuezhaojun/$REPO_NAME.git
               git push origin "$BRANCH_NAME"
               AGENT_SUMMARY="Codex successfully applied changes and pushed them to branch $BRANCH_NAME."
               AGENT_SUCCESS="true"
