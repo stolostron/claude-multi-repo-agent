@@ -135,13 +135,19 @@ jobs:
               git remote set-url origin https://xuezhaojun:${GITHUB_TOKEN}@github.com/xuezhaojun/$REPO_NAME.git
               git push origin "$BRANCH_NAME"
 
-              # Generate summary using codex based on issue body and diff
-              AGENT_SUMMARY=$(mods -f --model "$MODS_MODEL" "Given the git diff and issue body: ${{ needs.process-issue.outputs.ISSUE_BODY }}, generate a detailed summary in markdown format. Describe what was changed and why these changes were made. Only output the markdown, no explanation." < diff.txt)
+              # Generate summary using mods based on issue body and diff
+              AGENT_SUMMARY=$(mods -f --model "$MODS_MODEL" "Given the git diff and issue body: ${{ needs.process-issue.outputs.ISSUE_BODY }}, generate a detailed summary in markdown format. Describe what was changed and why these changes were made. Use plain markdown without backticks in headers. Only output the markdown, no explanation." < diff.txt)
               if [[ -z "$AGENT_SUMMARY" ]]; then
                 AGENT_SUMMARY="Automated summary for code changes."
               fi
 
               AGENT_SUCCESS="true"
+
+              # Create PR in the same step instead of a separate step
+              echo "Creating Pull Request..."
+              ORG=$(echo "$ORG_REPO" | cut -d'/' -f1)
+              # Always create PR to upstream repo, head is xuezhaojun:BRANCH_NAME
+              gh pr create --repo "$ORG/$REPO_NAME" --base main --head "xuezhaojun:$BRANCH_NAME" --title "$PR_TITLE" --body "$PR_BODY"
             fi
           else
             echo "Codex command failed."
@@ -151,51 +157,39 @@ jobs:
             PR_BODY="Codex command failed."
           fi
 
-          # Set outputs for subsequent steps
-          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_OUTPUT
-          echo "PR_TITLE=$PR_TITLE" >> $GITHUB_OUTPUT
-          echo "PR_BODY<<EOF" >> $GITHUB_OUTPUT
-          echo "$PR_BODY" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          echo "AGENT_SUMMARY<<EOF" >> $GITHUB_OUTPUT
-          echo "$AGENT_SUMMARY" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          echo "AGENT_SUCCESS=$AGENT_SUCCESS" >> $GITHUB_OUTPUT
+          # Save AGENT_SUMMARY to a file for subsequent steps
+          mkdir -p /tmp/workspace
+          echo "$AGENT_SUMMARY" > /tmp/workspace/agent_summary.txt
+
+          # Set environment variables for other smaller values
+          echo "AGENT_SUCCESS=$AGENT_SUCCESS" >> $GITHUB_ENV
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
 
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.AGENT_GH_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-
-      - name: Create Pull Request
-        if: steps.codex_agent.outputs.AGENT_SUCCESS == 'true'
-        run: |
-          echo "Creating Pull Request..."
-          ORG_REPO="${{ matrix.repo }}"
-          ORG=$(echo "$ORG_REPO" | cut -d'/' -f1)
-          REPO=$(echo "$ORG_REPO" | cut -d'/' -f2)
-          # Always create PR to upstream repo, head is xuezhaojun:BRANCH_NAME
-          gh pr create --repo "$ORG/$REPO" --base main --head "xuezhaojun:${{ steps.codex_agent.outputs.BRANCH_NAME }}" --title "${{ steps.codex_agent.outputs.PR_TITLE }}" --body "${{ steps.codex_agent.outputs.PR_BODY }}"
-        env:
           GH_TOKEN: ${{ secrets.AGENT_GH_TOKEN }}
 
       - name: Post Summary Comment on Issue
         if: always()
         run: |
           echo "Posting summary comment..."
-          SUMMARY="Codex Agent processing complete for Issue #${{ needs.process-issue.outputs.ISSUE_NUMBER }} in repo ${{ matrix.repo }}.\n\nSummary: ${{ steps.codex_agent.outputs.AGENT_SUMMARY }}"
+          # Read AGENT_SUMMARY from file
+          AGENT_SUMMARY=$(cat /tmp/workspace/agent_summary.txt)
+          SUMMARY="Codex Agent processing complete for Issue #${{ needs.process-issue.outputs.ISSUE_NUMBER }} in repo ${{ matrix.repo }}.\n\nSummary: $AGENT_SUMMARY"
 
-          if [[ "${{ steps.codex_agent.outputs.AGENT_SUCCESS }}" == "true" ]]; then
-            PR_URL=$(gh pr view ${{ steps.codex_agent.outputs.BRANCH_NAME }} --json url -q '.url' || echo "")
+          if [[ "${{ env.AGENT_SUCCESS }}" == "true" ]]; then
+            PR_URL=$(gh pr view ${{ env.BRANCH_NAME }} --json url -q '.url' || echo "")
             if [[ -n "$PR_URL" ]]; then
               SUMMARY="${SUMMARY}\nPull Request created: ${PR_URL}"
             else
               SUMMARY="${SUMMARY}\nCould not retrieve Pull Request URL (it might still be creating or the branch push failed)."
             fi
-          elif [[ "${{ steps.codex_agent.outputs.AGENT_SUCCESS }}" == "false" && -n "${{ steps.codex_agent.outputs.AGENT_SUMMARY }}" ]]; then
+          elif [[ "${{ env.AGENT_SUCCESS }}" == "false" && -n "$AGENT_SUMMARY" ]]; then
              # If failed, but we have a summary, just show the summary
-             SUMMARY="Codex Agent processing failed for Issue #${{ needs.process-issue.outputs.ISSUE_NUMBER }} in repo ${{ matrix.repo }}.\n\nSummary: ${{ steps.codex_agent.outputs.AGENT_SUMMARY }}"
+             SUMMARY="Codex Agent processing failed for Issue #${{ needs.process-issue.outputs.ISSUE_NUMBER }} in repo ${{ matrix.repo }}.\n\nSummary: $AGENT_SUMMARY"
           else
              # Generic failure message
              SUMMARY="Codex Agent processing failed for Issue #${{ needs.process-issue.outputs.ISSUE_NUMBER }} in repo ${{ matrix.repo }}. Please check the workflow logs for details."
