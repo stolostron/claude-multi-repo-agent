@@ -1,0 +1,208 @@
+name: Code Agent Issue Processor
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write # Needed to checkout code, create branch, push changes, create PR
+  pull-requests: write # Needed to create PR
+  issues: write # Needed to comment on the issue
+
+jobs:
+  process-issue:
+    runs-on: ubuntu-latest
+    if: contains('["xuezhaojun", "zhujian7", "qiujian16", "zhiweiyin318", "haoqing0110", "elgnay"]', github.event.issue.user.login)
+    steps:
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "stable"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "lts/*"
+
+      - name: Get Issue Details
+        id: issue_details
+        run: |
+          echo "ISSUE_NUMBER=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
+          echo "ISSUE_BODY<<EOF" >> $GITHUB_OUTPUT
+          echo "${{ github.event.issue.body }}" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "ISSUE_AUTHOR=${{ github.event.issue.user.login }}" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Install mods using go install
+        run: go install github.com/charmbracelet/mods@latest
+
+      - name: Extract Information using mods
+        id: extract_information
+        run: |
+          # Use mods to extract the selected repositories from the issue body as a JSON array
+          echo "Extracting target repositories from issue body using mods..."
+          REPOS=$(echo "${{ steps.issue_details.outputs.ISSUE_BODY }}" | mods --format json --prompt "Extract the list of repositories selected by the user in the 'Target Repositories' section from the following GitHub issue body. Output a JSON array of repository names.")
+          # The possible output of REPOS is a JSON array of repository names, for example:
+          # ["ocm", "managed-serviceaccount"]
+          echo "TARGET_REPOS=$REPOS" >> $GITHUB_OUTPUT
+        shell: bash
+    outputs:
+      repos: ${{ steps.extract_information.outputs.TARGET_REPOS }}
+      ISSUE_NUMBER: ${{ steps.issue_details.outputs.ISSUE_NUMBER }}
+      ISSUE_BODY: ${{ steps.issue_details.outputs.ISSUE_BODY }}
+
+  operate-on-repos:
+    needs: process-issue
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        repo: ${{ fromJson(needs.process-issue.outputs.repos) }}
+    steps:
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "stable"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "lts/*"
+
+      - name: Install mods using go install
+        run: go install github.com/charmbracelet/mods@latest
+
+      - name: Run Codex Agent for repo
+        id: codex_agent
+        run: |
+          set -e # Exit immediately if a command exits with a non-zero status.
+
+          echo "Installing @openai/codex..."
+          npm install -g @openai/codex
+
+          COMMIT_MESSAGE="feat: Automated changes for issue #${{ needs.process-issue.outputs.ISSUE_NUMBER }} in repo ${{ matrix.repo }}"
+          AGENT_SUMMARY=""
+          AGENT_SUCCESS="false" # Default to failure
+
+          echo "Configuring Git..."
+          # Configure git user for commit
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+          echo "Cloning repository: ${{ matrix.repo }}..."
+          # Determine the organization based on the repository
+          if [[ "${{ matrix.repo }}" == *"stolostron"* ]]; then
+            ORG="stolostron"
+          else
+            ORG="open-cluster-management-io"
+          fi
+
+          # Clone the repository from the forked repo instead of upstream
+          git clone https://github.com/xuezhaojun/${{ matrix.repo }}.git
+          cd ${{ matrix.repo }}
+          git fetch origin
+          git checkout main || git checkout master
+          git pull
+
+          # Use a direct branch name based on issue number and repo
+          BRANCH_NAME="code-agent-issue-${{ needs.process-issue.outputs.ISSUE_NUMBER }}-${{ matrix.repo }}"
+          git checkout -b "$BRANCH_NAME"
+
+          echo "--- Task Description ---"
+          echo "${{ needs.process-issue.outputs.ISSUE_BODY }}"
+          echo "------------------------"
+          echo "Running codex for repo: ${{ matrix.repo }}..."
+
+          # Run codex with the issue body as the prompt
+          if codex --approval-mode full-auto --quiet "${{ needs.process-issue.outputs.ISSUE_BODY }}"; then
+            echo "Codex completed successfully."
+            echo "Staging changes..."
+            if git diff --quiet && git diff --staged --quiet; then
+              echo "No changes detected by codex."
+              AGENT_SUMMARY="Codex ran successfully but made no changes to the code."
+              AGENT_SUCCESS="false"
+              PR_TITLE="Automated changes for issue #${{ needs.process-issue.outputs.ISSUE_NUMBER }}"
+              PR_BODY="No code changes detected."
+            else
+              echo "Changes detected. Staging..."
+              git add .
+              # Generate diff summary for mods
+              DIFF_SUMMARY=$(git --no-pager diff HEAD~1 HEAD)
+              # Generate commit message using mods based on the diff
+              COMMIT_MSG=$(echo "$DIFF_SUMMARY" | mods --format text --prompt "Generate a concise, conventional commit message (max 1 line, imperative mood, no explanation) for the following git diff.")
+              if [[ -z "$COMMIT_MSG" ]]; then
+                COMMIT_MSG="chore: automated changes for issue #${{ needs.process-issue.outputs.ISSUE_NUMBER }}"
+              fi
+              echo "Committing changes..."
+              git commit -m "$COMMIT_MSG"
+              # Use mods to generate PR title and PR body
+              PR_TITLE=$(echo "$DIFF_SUMMARY" | mods --format text --prompt "Generate a concise, human-readable GitHub Pull Request title (max 12 words, no special characters except punctuation) that summarizes the following git diff. Only output the title, no explanation.")
+              if [[ -z "$PR_TITLE" ]]; then
+                PR_TITLE="Automated changes for issue #${{ needs.process-issue.outputs.ISSUE_NUMBER }}"
+              fi
+              ISSUE_URL="https://github.com/${{ github.repository }}/issues/${{ needs.process-issue.outputs.ISSUE_NUMBER }}"
+              ISSUE_LINK_MARKDOWN="[Related Issue]($ISSUE_URL)\n\n---\n"
+              PR_BODY=$(echo "$DIFF_SUMMARY" | mods --format markdown --prompt "Given the following git diff, generate a detailed GitHub Pull Request description in markdown format. Include a summary, key changes, relevant context, and reference the issue. Only output the markdown, no explanation.\n\nGit Diff:")
+              if [[ -z "$PR_BODY" ]]; then
+                PR_BODY="Automated PR for code changes."
+              fi
+              PR_BODY="$ISSUE_LINK_MARKDOWN$PR_BODY"
+              echo "Pushing changes to origin..."
+              git push origin "$BRANCH_NAME"
+              AGENT_SUMMARY="Codex successfully applied changes and pushed them to branch $BRANCH_NAME."
+              AGENT_SUCCESS="true"
+            fi
+          else
+            echo "Codex command failed."
+            AGENT_SUMMARY="Codex command failed to execute."
+            AGENT_SUCCESS="false"
+            PR_TITLE="Automated changes for issue #${{ needs.process-issue.outputs.ISSUE_NUMBER }}"
+            PR_BODY="Codex command failed."
+          fi
+
+          # Set outputs for subsequent steps
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          echo "PR_TITLE=$PR_TITLE" >> $GITHUB_OUTPUT
+          echo "PR_BODY<<EOF" >> $GITHUB_OUTPUT
+          echo "$PR_BODY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "AGENT_SUMMARY=$AGENT_SUMMARY" >> $GITHUB_OUTPUT
+          echo "AGENT_SUCCESS=$AGENT_SUCCESS" >> $GITHUB_OUTPUT
+
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }} # Add your OpenAI API key as a repository secret
+
+      - name: Create Pull Request
+        if: steps.codex_agent.outputs.AGENT_SUCCESS == 'true'
+        run: |
+          echo "Creating Pull Request..."
+          gh pr create --base main --head ${{ steps.codex_agent.outputs.BRANCH_NAME }} --title "${{ steps.codex_agent.outputs.PR_TITLE }}" --body "${{ steps.codex_agent.outputs.PR_BODY }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Post Summary Comment on Issue
+        if: always()
+        run: |
+          echo "Posting summary comment..."
+          SUMMARY="Codex Agent processing complete for Issue #${{ needs.process-issue.outputs.ISSUE_NUMBER }} in repo ${{ matrix.repo }}.\n\nSummary: ${{ steps.codex_agent.outputs.AGENT_SUMMARY }}"
+
+          if [[ "${{ steps.codex_agent.outputs.AGENT_SUCCESS }}" == "true" ]]; then
+            PR_URL=$(gh pr view ${{ steps.codex_agent.outputs.BRANCH_NAME }} --json url -q '.url' || echo "")
+            if [[ -n "$PR_URL" ]]; then
+              SUMMARY="${SUMMARY}\nPull Request created: ${PR_URL}"
+            elsegit init
+              SUMMARY="${SUMMARY}\nCould not retrieve Pull Request URL (it might still be creating or the branch push failed)."
+            fi
+          elif [[ "${{ steps.codex_agent.outputs.AGENT_SUCCESS }}" == "false" && -n "${{ steps.codex_agent.outputs.AGENT_SUMMARY }}" ]]; then
+             # If failed, but we have a summary, just show the summary
+             SUMMARY="Codex Agent processing failed for Issue #${{ needs.process-issue.outputs.ISSUE_NUMBER }} in repo ${{ matrix.repo }}.\n\nSummary: ${{ steps.codex_agent.outputs.AGENT_SUMMARY }}"
+          else
+             # Generic failure message
+             SUMMARY="Codex Agent processing failed for Issue #${{ needs.process-issue.outputs.ISSUE_NUMBER }} in repo ${{ matrix.repo }}. Please check the workflow logs for details."
+          fi
+
+          gh issue comment ${{ needs.process-issue.outputs.ISSUE_NUMBER }} --body "$SUMMARY"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
