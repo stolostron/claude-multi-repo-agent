@@ -94,18 +94,11 @@ jobs:
           git config --global user.name 'xuezhaojun'
           git config --global user.email 'zxue@redhat.com'
 
-          echo "Cloning repository: ${{ matrix.repo }}..."
-          # Determine the organization based on the repository
-          if [[ "${{ matrix.repo }}" == *"stolostron"* ]]; then
-            ORG="stolostron"
-          else
-            ORG="open-cluster-management-io"
-          fi
-
-          # Fork the upstream repo if not already forked, then clone the fork
+          echo "Cloning repository: xuezhaojun/$REPO_NAME..."
           ORG_REPO="${{ matrix.repo }}"
-          gh repo fork "$ORG_REPO" --clone --remote --remote-name origin
-          cd $(basename "$ORG_REPO")
+          REPO_NAME=$(echo "$ORG_REPO" | cut -d'/' -f2)
+          git clone https://github.com/xuezhaojun/$REPO_NAME.git
+          cd $REPO_NAME
           git fetch origin
           git checkout main || git checkout master
           git pull
