@@ -157,7 +157,9 @@ jobs:
           echo "PR_BODY<<EOF" >> $GITHUB_OUTPUT
           echo "$PR_BODY" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
-          echo "AGENT_SUMMARY=$AGENT_SUMMARY" >> $GITHUB_OUTPUT
+          echo "AGENT_SUMMARY<<EOF" >> $GITHUB_OUTPUT
+          echo "$AGENT_SUMMARY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
           echo "AGENT_SUCCESS=$AGENT_SUCCESS" >> $GITHUB_OUTPUT
 
         shell: bash
