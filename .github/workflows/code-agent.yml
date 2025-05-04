@@ -11,6 +11,7 @@ permissions:
 
 # Global environment variables for model selection
 env:
+  MODS_MODEL: gpt-4o
   CODEX_MODEL: anthropic/claude-3.7-sonnet # The model to use for codex (can be changed globally)
   CODEX_PROVIDER: openrouter
 
@@ -59,6 +60,11 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: "lts/*"
+
+      - name: Install mods using go install
+        run: |
+          go install github.com/charmbracelet/mods@latest
+          echo "$HOME/go/bin" >> $GITHUB_PATH
 
       - name: Run Codex Agent for repo
         id: codex_agent
@@ -111,8 +117,8 @@ jobs:
               git add .
               git diff --cached > diff.txt
 
-              codex --provider "$CODEX_PROVIDER" --model "$CODEX_MODEL" --approval-mode full-auto --quiet "Generate a concise, conventional commit message (max 1 line, imperative mood, no explanation) for the following git diff:\n$(cat diff.txt), create a file named commit_msg.txt to store the commit message"
-              COMMIT_MSG=$(cat commit_msg.txt)
+              COMMIT_MSG=$(mods -f --model "$MODS_MODEL" "Generate a concise, conventional commit message (max 1 line, imperative mood, no explanation) based on this git diff. Only output the commit message, no explanation, no code block, no extra text." < diff.txt)
+              COMMIT_MSG=$(echo "$COMMIT_MSG" | grep -v '```' | head -n 1)
               if [[ -z "$COMMIT_MSG" ]]; then
                 COMMIT_MSG="chore: automated changes for issue #${{ needs.process-issue.outputs.ISSUE_NUMBER }}"
               fi
@@ -129,9 +135,7 @@ jobs:
               git push origin "$BRANCH_NAME"
 
               # Generate summary using codex based on issue body and diff
-              SUMMARY_PROMPT="Given the following GitHub issue body and git diff, generate a detailed summary in markdown format. Describe what was changed and why these changes were made. Only output the markdown, no explanation.\n\nGitHub Issue Body:\n${{ needs.process-issue.outputs.ISSUE_BODY }}\n\nGit Diff:\n$(cat diff.txt). Create a file named summary.md to store the summary."
-              codex --provider "$CODEX_PROVIDER" --model "$CODEX_LITE_MODEL" --approval-mode full-auto --quiet "$SUMMARY_PROMPT"
-              AGENT_SUMMARY=$(cat summary.md)
+              AGENT_SUMMARY=$(mods -f --model "$MODS_MODEL" "Given the git diff and issue body: ${needs.process-issue.outputs.ISSUE_BODY}, generate a detailed summary in markdown format. Describe what was changed and why these changes were made. Only output the markdown, no explanation." < diff.txt)
               if [[ -z "$AGENT_SUMMARY" ]]; then
                 AGENT_SUMMARY="Automated summary for code changes."
               fi
