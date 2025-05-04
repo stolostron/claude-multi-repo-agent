@@ -9,6 +9,11 @@ permissions:
   pull-requests: write # Needed to create PR
   issues: write # Needed to comment on the issue
 
+# Global environment variables for model selection
+env:
+  MODS_MODEL: gpt-4.1-nano # The model to use for mods (can be changed globally)
+  CODEX_MODEL: gpt-4.1 # The model to use for codex (can be changed globally)
+
 jobs:
   process-issue:
     runs-on: ubuntu-latest
@@ -42,7 +47,7 @@ jobs:
         run: |
           # Use mods to extract the selected repositories from the issue body as a JSON array
           echo "Extracting target repositories from issue body using mods..."
-          REPOS=$(echo "${{ steps.issue_details.outputs.ISSUE_BODY }}" | mods --format json --prompt "Extract the list of repositories selected by the user in the 'Target Repositories' section from the following GitHub issue body. Output a JSON array of repository names.")
+          REPOS=$(echo "${{ steps.issue_details.outputs.ISSUE_BODY }}" | mods --model "$MODS_MODEL" --format json --prompt "Extract the list of repositories selected by the user in the 'Target Repositories' section from the following GitHub issue body. Output a JSON array of repository names.")
           # The possible output of REPOS is a JSON array of repository names, for example:
           # ["ocm", "managed-serviceaccount"]
           echo "TARGET_REPOS=$REPOS" >> $GITHUB_OUTPUT
@@ -86,8 +91,9 @@ jobs:
 
           echo "Configuring Git..."
           # Configure git user for commit
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          # TODO: Use the actual bot user name and email
+          git config --global user.name 'xuezhaojun'
+          git config --global user.email 'zxue@redhat.com'
 
           echo "Cloning repository: ${{ matrix.repo }}..."
           # Determine the organization based on the repository
@@ -114,7 +120,7 @@ jobs:
           echo "Running codex for repo: ${{ matrix.repo }}..."
 
           # Run codex with the issue body as the prompt
-          if codex --approval-mode full-auto --quiet "${{ needs.process-issue.outputs.ISSUE_BODY }}"; then
+          if codex --model "$CODEX_MODEL" --approval-mode full-auto --quiet "${{ needs.process-issue.outputs.ISSUE_BODY }}"; then
             echo "Codex completed successfully."
             echo "Staging changes..."
             if git diff --quiet && git diff --staged --quiet; then
@@ -129,20 +135,20 @@ jobs:
               # Generate diff summary for mods
               DIFF_SUMMARY=$(git --no-pager diff HEAD~1 HEAD)
               # Generate commit message using mods based on the diff
-              COMMIT_MSG=$(echo "$DIFF_SUMMARY" | mods --format text --prompt "Generate a concise, conventional commit message (max 1 line, imperative mood, no explanation) for the following git diff.")
+              COMMIT_MSG=$(echo "$DIFF_SUMMARY" | mods --model "$MODS_MODEL" --format text --prompt "Generate a concise, conventional commit message (max 1 line, imperative mood, no explanation) for the following git diff.")
               if [[ -z "$COMMIT_MSG" ]]; then
                 COMMIT_MSG="chore: automated changes for issue #${{ needs.process-issue.outputs.ISSUE_NUMBER }}"
               fi
               echo "Committing changes..."
-              git commit -m "$COMMIT_MSG"
+              git commit -s -m "$COMMIT_MSG"
               # Use mods to generate PR title and PR body
-              PR_TITLE=$(echo "$DIFF_SUMMARY" | mods --format text --prompt "Generate a concise, human-readable GitHub Pull Request title (max 12 words, no special characters except punctuation) that summarizes the following git diff. Only output the title, no explanation.")
+              PR_TITLE=$(echo "$DIFF_SUMMARY" | mods --model "$MODS_MODEL" --format text --prompt "Generate a concise, human-readable GitHub Pull Request title (max 12 words, no special characters except punctuation) that summarizes the following git diff. Only output the title, no explanation.")
               if [[ -z "$PR_TITLE" ]]; then
                 PR_TITLE="Automated changes for issue #${{ needs.process-issue.outputs.ISSUE_NUMBER }}"
               fi
               ISSUE_URL="https://github.com/${{ github.repository }}/issues/${{ needs.process-issue.outputs.ISSUE_NUMBER }}"
               ISSUE_LINK_MARKDOWN="[Related Issue]($ISSUE_URL)\n\n---\n"
-              PR_BODY=$(echo "$DIFF_SUMMARY" | mods --format markdown --prompt "Given the following git diff, generate a detailed GitHub Pull Request description in markdown format. Include a summary, key changes, relevant context, and reference the issue. Only output the markdown, no explanation.\n\nGit Diff:")
+              PR_BODY=$(echo "$DIFF_SUMMARY" | mods --model "$MODS_MODEL" --format markdown --prompt "Given the following git diff, generate a detailed GitHub Pull Request description in markdown format. Include a summary, key changes, relevant context, and reference the issue. Only output the markdown, no explanation.\n\nGit Diff:")
               if [[ -z "$PR_BODY" ]]; then
                 PR_BODY="Automated PR for code changes."
               fi
@@ -171,7 +177,7 @@ jobs:
 
         shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.AGENT_GH_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }} # Add your OpenAI API key as a repository secret
 
       - name: Create Pull Request
@@ -180,7 +186,7 @@ jobs:
           echo "Creating Pull Request..."
           gh pr create --base main --head ${{ steps.codex_agent.outputs.BRANCH_NAME }} --title "${{ steps.codex_agent.outputs.PR_TITLE }}" --body "${{ steps.codex_agent.outputs.PR_BODY }}"
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.AGENT_GH_TOKEN }}
 
       - name: Post Summary Comment on Issue
         if: always()
@@ -192,7 +198,7 @@ jobs:
             PR_URL=$(gh pr view ${{ steps.codex_agent.outputs.BRANCH_NAME }} --json url -q '.url' || echo "")
             if [[ -n "$PR_URL" ]]; then
               SUMMARY="${SUMMARY}\nPull Request created: ${PR_URL}"
-            elsegit init
+            else
               SUMMARY="${SUMMARY}\nCould not retrieve Pull Request URL (it might still be creating or the branch push failed)."
             fi
           elif [[ "${{ steps.codex_agent.outputs.AGENT_SUCCESS }}" == "false" && -n "${{ steps.codex_agent.outputs.AGENT_SUMMARY }}" ]]; then
