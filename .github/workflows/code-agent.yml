@@ -11,7 +11,7 @@ permissions:
 
 # Global environment variables for model selection
 env:
-  MODS_MODEL: gpt-4o-mini # The model to use for mods (can be changed globally)
+  CODEX_LITE_MODEL: openai/gpt-4o-mini
   CODEX_MODEL: anthropic/claude-3.7-sonnet # The model to use for codex (can be changed globally)
   CODEX_PROVIDER: openrouter
 
@@ -61,9 +61,6 @@ jobs:
         with:
           node-version: "lts/*"
 
-      - name: Install mods using go install
-        run: go install github.com/charmbracelet/mods@latest
-
       - name: Run Codex Agent for repo
         id: codex_agent
         run: |
@@ -92,7 +89,7 @@ jobs:
           git pull
 
           # Use a direct branch name based on issue number and repo
-          BRANCH_NAME="code-agent-issue-${{ needs.process-issue.outputs.ISSUE_NUMBER }}-${{ matrix.repo }}"
+          BRANCH_NAME="code-agent-issue-${{ needs.process-issue.outputs.ISSUE_NUMBER }}-${{ matrix.repo }}-$(date -u +%Y%m%d-%H%M%S)"
           git checkout -b "$BRANCH_NAME"
 
           echo "--- Task Description ---"
@@ -113,31 +110,33 @@ jobs:
             else
               echo "Changes detected. Staging..."
               git add .
-              # Generate diff summary for mods
-              DIFF_SUMMARY=$(git --no-pager diff HEAD~1 HEAD)
-              # Generate commit message using mods based on the diff
-              COMMIT_MSG=$(echo "$DIFF_SUMMARY" | mods --model "$MODS_MODEL" --format text --prompt "Generate a concise, conventional commit message (max 1 line, imperative mood, no explanation) for the following git diff.")
+              git diff --cached > diff.txt
+
+              codex --provider "$CODEX_PROVIDER" --model "$CODEX_MODEL" --format text --quiet --prompt "Generate a concise, conventional commit message (max 1 line, imperative mood, no explanation) for the following git diff:\n$(cat diff.txt)" > commit_msg.txt
+              COMMIT_MSG=$(cat commit_msg.txt)
               if [[ -z "$COMMIT_MSG" ]]; then
                 COMMIT_MSG="chore: automated changes for issue #${{ needs.process-issue.outputs.ISSUE_NUMBER }}"
               fi
+
               echo "Committing changes..."
               git commit -s -m "$COMMIT_MSG"
-              # Use mods to generate PR title and PR body
-              PR_TITLE=$(echo "$DIFF_SUMMARY" | mods --model "$MODS_MODEL" --format text --prompt "Generate a concise, human-readable GitHub Pull Request title (max 12 words, no special characters except punctuation) that summarizes the following git diff. Only output the title, no explanation.")
-              if [[ -z "$PR_TITLE" ]]; then
-                PR_TITLE="Automated changes for issue #${{ needs.process-issue.outputs.ISSUE_NUMBER }}"
-              fi
+
+              # Use issue title and link for PR
+              PR_TITLE="${{ github.event.issue.title }}"
               ISSUE_URL="https://github.com/${{ github.repository }}/issues/${{ needs.process-issue.outputs.ISSUE_NUMBER }}"
-              ISSUE_LINK_MARKDOWN="[Related Issue]($ISSUE_URL)\n\n---\n"
-              PR_BODY=$(echo "$DIFF_SUMMARY" | mods --model "$MODS_MODEL" --format markdown --prompt "Given the following git diff, generate a detailed GitHub Pull Request description in markdown format. Include a summary, key changes, relevant context, and reference the issue. Only output the markdown, no explanation.\n\nGit Diff:")
-              if [[ -z "$PR_BODY" ]]; then
-                PR_BODY="Automated PR for code changes."
-              fi
-              PR_BODY="$ISSUE_LINK_MARKDOWN$PR_BODY"
+              PR_BODY="[Related Issue]($ISSUE_URL)"
               echo "Pushing changes to origin..."
               git remote set-url origin https://xuezhaojun:${GITHUB_TOKEN}@github.com/xuezhaojun/$REPO_NAME.git
               git push origin "$BRANCH_NAME"
-              AGENT_SUMMARY="Codex successfully applied changes and pushed them to branch $BRANCH_NAME."
+
+              # Generate summary using codex based on issue body and diff
+              SUMMARY_PROMPT="Given the following GitHub issue body and git diff, generate a detailed summary in markdown format. Describe what was changed and why these changes were made. Only output the markdown, no explanation.\n\nGitHub Issue Body:\n${{ needs.process-issue.outputs.ISSUE_BODY }}\n\nGit Diff:\n$(cat diff.txt)"
+              codex --provider "$CODEX_PROVIDER" --model "$CODEX_LITE_MODEL" --format markdown --quiet --prompt "$SUMMARY_PROMPT" > summary.md
+              AGENT_SUMMARY=$(cat summary.md)
+              if [[ -z "$AGENT_SUMMARY" ]]; then
+                AGENT_SUMMARY="Automated summary for code changes."
+              fi
+
               AGENT_SUCCESS="true"
             fi
           else

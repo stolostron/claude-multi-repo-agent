@@ -1,6 +1,5 @@
 name: Code Agent Task Request
 description: Describe a task for the automated code agent.
-title: "[Code Agent Task]: "
 body:
   - type: markdown
     attributes:
