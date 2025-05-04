@@ -43,9 +43,10 @@ jobs:
         run: |
           # Use mods to extract the selected repositories from the issue body as a JSON array
           echo "Extracting target repositories from issue body using mods..."
-          REPOS=$(echo "${{ steps.issue_details.outputs.ISSUE_BODY }}" | mods --model "$MODS_MODEL" --format json --prompt "Extract the list of repositories selected by the user in the 'Target Repositories' section from the following GitHub issue body. Output a JSON array of repository names.")
+          REPOS=$(echo "${{ steps.issue_details.outputs.ISSUE_BODY }}" | mods --model "$MODS_MODEL" --format json --prompt "Extract the list of repositories selected by the user in the 'Target Repositories' section from the following GitHub issue body. Output only a JSON array of repository names, with no explanation or extra text.")
           # The possible output of REPOS is a JSON array of repository names, for example:
           # ["ocm", "managed-serviceaccount"]
+          REPOS=$(echo "$REPOS" | sed '/^```/d')
           echo "TARGET_REPOS=$REPOS" >> $GITHUB_OUTPUT
         shell: bash
         env:
