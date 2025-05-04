@@ -72,7 +72,8 @@ jobs:
           set -e # Exit immediately if a command exits with a non-zero status.
 
           echo "Installing @openai/codex..."
-          npm install -g @openai/codex
+          # latest version has a bug of sanbox issue: https://github.com/openai/codex/issues/782
+          npm i -g @openai/codex@0.1.2504251709
 
           COMMIT_MESSAGE="feat: Automated changes for issue #${{ needs.process-issue.outputs.ISSUE_NUMBER }} in repo ${{ matrix.repo }}"
           AGENT_SUMMARY=""
