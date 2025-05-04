@@ -25,10 +25,8 @@ jobs:
         with:
           go-version: "stable"
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: "lts/*"
+      - name: Install mods using go install
+        run: go install github.com/charmbracelet/mods@latest
 
       - name: Get Issue Details
         id: issue_details
@@ -40,9 +38,6 @@ jobs:
           echo "ISSUE_AUTHOR=${{ github.event.issue.user.login }}" >> $GITHUB_OUTPUT
         shell: bash
 
-      - name: Install mods using go install
-        run: go install github.com/charmbracelet/mods@latest
-
       - name: Extract Information using mods
         id: extract_information
         run: |
@@ -53,6 +48,8 @@ jobs:
           # ["ocm", "managed-serviceaccount"]
           echo "TARGET_REPOS=$REPOS" >> $GITHUB_OUTPUT
         shell: bash
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
     outputs:
       repos: ${{ steps.extract_information.outputs.TARGET_REPOS }}
       ISSUE_NUMBER: ${{ steps.issue_details.outputs.ISSUE_NUMBER }}
@@ -180,7 +177,7 @@ jobs:
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.AGENT_GH_TOKEN }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }} # Add your OpenAI API key as a repository secret
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
       - name: Create Pull Request
         if: steps.codex_agent.outputs.AGENT_SUCCESS == 'true'
