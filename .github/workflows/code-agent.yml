@@ -111,7 +111,7 @@ jobs:
               git add .
               git diff --cached > diff.txt
 
-              codex --provider "$CODEX_PROVIDER" --model "$CODEX_MODEL" --format text --quiet --prompt "Generate a concise, conventional commit message (max 1 line, imperative mood, no explanation) for the following git diff:\n$(cat diff.txt)" > commit_msg.txt
+              codex --provider "$CODEX_PROVIDER" --model "$CODEX_MODEL" --approval-mode full-auto --quiet "Generate a concise, conventional commit message (max 1 line, imperative mood, no explanation) for the following git diff:\n$(cat diff.txt), create a file named commit_msg.txt to store the commit message"
               COMMIT_MSG=$(cat commit_msg.txt)
               if [[ -z "$COMMIT_MSG" ]]; then
                 COMMIT_MSG="chore: automated changes for issue #${{ needs.process-issue.outputs.ISSUE_NUMBER }}"
@@ -129,8 +129,8 @@ jobs:
               git push origin "$BRANCH_NAME"
 
               # Generate summary using codex based on issue body and diff
-              SUMMARY_PROMPT="Given the following GitHub issue body and git diff, generate a detailed summary in markdown format. Describe what was changed and why these changes were made. Only output the markdown, no explanation.\n\nGitHub Issue Body:\n${{ needs.process-issue.outputs.ISSUE_BODY }}\n\nGit Diff:\n$(cat diff.txt)"
-              codex --provider "$CODEX_PROVIDER" --model "$CODEX_LITE_MODEL" --format markdown --quiet --prompt "$SUMMARY_PROMPT" > summary.md
+              SUMMARY_PROMPT="Given the following GitHub issue body and git diff, generate a detailed summary in markdown format. Describe what was changed and why these changes were made. Only output the markdown, no explanation.\n\nGitHub Issue Body:\n${{ needs.process-issue.outputs.ISSUE_BODY }}\n\nGit Diff:\n$(cat diff.txt). Create a file named summary.md to store the summary."
+              codex --provider "$CODEX_PROVIDER" --model "$CODEX_LITE_MODEL" --approval-mode full-auto --quiet "$SUMMARY_PROMPT"
               AGENT_SUMMARY=$(cat summary.md)
               if [[ -z "$AGENT_SUMMARY" ]]; then
                 AGENT_SUMMARY="Automated summary for code changes."
