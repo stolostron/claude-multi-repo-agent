@@ -11,8 +11,9 @@ permissions:
 
 # Global environment variables for model selection
 env:
-  MODS_MODEL: gpt-4.1-nano # The model to use for mods (can be changed globally)
-  CODEX_MODEL: gpt-4.1 # The model to use for codex (can be changed globally)
+  MODS_MODEL: gpt-4o-mini # The model to use for mods (can be changed globally)
+  CODEX_MODEL: anthropic/claude-3.7-sonnet # The model to use for codex (can be changed globally)
+  CODEX_PROVIDER: openrouter
 
 jobs:
   process-issue:
@@ -121,7 +122,7 @@ jobs:
           echo "Running codex for repo: ${{ matrix.repo }}..."
 
           # Run codex with the issue body as the prompt
-          if codex --model "$CODEX_MODEL" --approval-mode full-auto --quiet "${{ needs.process-issue.outputs.ISSUE_BODY }}"; then
+          if codex --provider "$CODEX_PROVIDER" --model "$CODEX_MODEL" --approval-mode full-auto --quiet "${{ needs.process-issue.outputs.ISSUE_BODY }}"; then
             echo "Codex completed successfully."
             echo "Staging changes..."
             if git diff --quiet && git diff --staged --quiet; then
