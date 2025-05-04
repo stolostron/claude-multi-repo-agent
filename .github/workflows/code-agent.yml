@@ -194,6 +194,6 @@ jobs:
              SUMMARY="Codex Agent processing failed for Issue #${{ needs.process-issue.outputs.ISSUE_NUMBER }} in repo ${{ matrix.repo }}. Please check the workflow logs for details."
           fi
 
-          gh issue comment ${{ needs.process-issue.outputs.ISSUE_NUMBER }} --body "$SUMMARY"
+          gh issue comment ${{ needs.process-issue.outputs.ISSUE_NUMBER }} --repo "${{ github.repository }}" --body "$SUMMARY"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
