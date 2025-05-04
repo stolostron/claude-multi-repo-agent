@@ -39,8 +39,6 @@ body:
           required: false
         - label: stolostron/cluster-proxy-addon
           required: false
-        - label: stolostron/managed-serviceaccount
-          required: false
         - label: stolostron/clusterlifecycle-state-metrics
           required: false
         - label: stolostron/klusterlet-addon-controller
