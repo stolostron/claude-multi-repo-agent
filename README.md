@@ -104,3 +104,28 @@ Add logging to the cluster-proxy-addon component to improve debugging capabiliti
 ```
 
 The AI agent will only operate on the repositories with checked boxes.
+
+## Limitations
+
+- codex can't run commands that require network access, so you can run `make test` to test the code locally, but you can't run `go get` to install dependencies.
+- codex can't create new files, codex can only edit existing files.
+- codex is not stable for CI mode: https://github.com/openai/codex/issues/156
+
+## TODO
+
+### Make the Project More Testable
+
+- Create local testing scripts that simulate the GitHub environment
+- Extract core workflow logic into standalone scripts for easier local testing
+- Add `workflow_dispatch` trigger with input parameters to simulate issues
+- Implement test flags to control behavior (e.g., skip actual PR creation)
+- Use environment variables to differentiate between test and production environments
+- Leverage [nektos/act](https://github.com/nektos/act) to run GitHub Actions locally
+- Modularize complex logic into separate functions or reusable actions
+- Add mock services for GitHub API interactions
+- Implement logging levels for better debugging
+- Create a development guide with testing procedures
+
+### Test with other code-agent solutions
+
+- [smolagents](https://github.com/huggingface/smolagents?tab=readme-ov-file)
