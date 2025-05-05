@@ -124,6 +124,15 @@ jobs:
                 COMMIT_MSG="chore: automated changes for issue #${{ needs.process-issue.outputs.ISSUE_NUMBER }}"
               fi
 
+              echo "Tidying go mod..."
+              go mod tidy
+
+              # Check if vendor directory exists and run go mod vendor if it does
+              if [ -d "vendor" ]; then
+                echo "Vendor directory detected, running go mod vendor..."
+                go mod vendor
+              fi
+
               echo "Committing changes..."
               git commit -s -m "$COMMIT_MSG"
 
