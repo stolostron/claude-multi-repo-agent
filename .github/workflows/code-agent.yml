@@ -178,23 +178,42 @@ jobs:
           echo "Posting summary comment..."
           # Read AGENT_SUMMARY from file
           AGENT_SUMMARY=$(cat /tmp/workspace/agent_summary.txt)
-          SUMMARY="Codex Agent processing complete for Issue #${{ needs.process-issue.outputs.ISSUE_NUMBER }} in repo ${{ matrix.repo }}.\n\nSummary: $AGENT_SUMMARY"
+
+          # Create summary with proper newlines (using echo -e to interpret newlines)
+          SUMMARY_TITLE="Codex Agent processing complete for Issue #${{ needs.process-issue.outputs.ISSUE_NUMBER }} in repo ${{ matrix.repo }}."
+          SUMMARY_CONTENT="Summary: $AGENT_SUMMARY"
 
           if [[ "${{ env.AGENT_SUCCESS }}" == "true" ]]; then
             PR_URL=$(gh pr view ${{ env.BRANCH_NAME }} --json url -q '.url' || echo "")
             if [[ -n "$PR_URL" ]]; then
-              SUMMARY="${SUMMARY}\nPull Request created: ${PR_URL}"
+              SUMMARY_PR="Pull Request created: ${PR_URL}"
             else
-              SUMMARY="${SUMMARY}\nCould not retrieve Pull Request URL (it might still be creating or the branch push failed)."
+              SUMMARY_PR="Could not retrieve Pull Request URL (it might still be creating or the branch push failed)."
             fi
           elif [[ "${{ env.AGENT_SUCCESS }}" == "false" && -n "$AGENT_SUMMARY" ]]; then
              # If failed, but we have a summary, just show the summary
-             SUMMARY="Codex Agent processing failed for Issue #${{ needs.process-issue.outputs.ISSUE_NUMBER }} in repo ${{ matrix.repo }}.\n\nSummary: $AGENT_SUMMARY"
+             SUMMARY_TITLE="Codex Agent processing failed for Issue #${{ needs.process-issue.outputs.ISSUE_NUMBER }} in repo ${{ matrix.repo }}."
+             SUMMARY_CONTENT="Summary: $AGENT_SUMMARY"
+             SUMMARY_PR=""
           else
              # Generic failure message
-             SUMMARY="Codex Agent processing failed for Issue #${{ needs.process-issue.outputs.ISSUE_NUMBER }} in repo ${{ matrix.repo }}. Please check the workflow logs for details."
+             SUMMARY_TITLE="Codex Agent processing failed for Issue #${{ needs.process-issue.outputs.ISSUE_NUMBER }} in repo ${{ matrix.repo }}. Please check the workflow logs for details."
+             SUMMARY_CONTENT=""
+             SUMMARY_PR=""
           fi
 
-          gh issue comment ${{ needs.process-issue.outputs.ISSUE_NUMBER }} --repo "${{ github.repository }}" --body "$SUMMARY"
+          # Create a properly formatted markdown comment with real newlines
+          {
+            echo "$SUMMARY_TITLE"
+            echo ""
+            echo "$SUMMARY_CONTENT"
+            if [[ -n "$SUMMARY_PR" ]]; then
+              echo ""
+              echo "$SUMMARY_PR"
+            fi
+          } > comment.md
+
+          # Use the file contents for the comment body
+          gh issue comment ${{ needs.process-issue.outputs.ISSUE_NUMBER }} --repo "${{ github.repository }}" --body-file comment.md
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
