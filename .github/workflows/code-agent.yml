@@ -12,7 +12,7 @@ permissions:
 # Global environment variables for model selection
 env:
   MODS_MODEL: gpt-4o
-  CODEX_MODEL: anthropic/claude-3.7-sonnet # The model to use for codex (can be changed globally)
+  CODEX_MODEL: google/gemini-2.5-flash-preview # The model to use for codex (can be changed globally)
   CODEX_PROVIDER: openrouter
 
 jobs:
