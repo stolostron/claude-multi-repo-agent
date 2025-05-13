@@ -1,0 +1,17 @@
+# VS Code
+.vscode/
+
+# MacOS
+.DS_Store
+
+# Environment variables
+.env
+.env.*
+.venv
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Agent Code Workspace
+workspace/
