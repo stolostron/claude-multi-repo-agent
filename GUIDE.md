@@ -4,16 +4,6 @@
 
 This guide describes the automated workflow for processing multiple Git repositories, making code changes according to specified tasks, and creating pull requests.
 
-## Directory Structure
-
-### Root Files
-
-- **`task.md`**: Contains the current task configuration
-  - **Description section**: Detailed description of the task to execute (referred to as `task.description`)
-  - **Records section**: A markdown table with columns: `repo`, `branch`, `pass`, `result`, `PR`
-    - Each row represents a project to process
-    - Column values can be referenced as `record.repo`, `record.branch`, etc.
-
 ### Workspace Directory
 
 - **`workspace/`**: Contains multiple project directories
@@ -111,18 +101,6 @@ gh pr create \
 - Title must be concise and in English
 - Description should use markdown format with detailed reasoning
 - Use `$'...'` syntax for proper escape sequence handling
-
-#### g. Update Records
-
-Update the record with results:
-
-- `record.pass`: `yes` or `no`
-- `record.result`: Brief summary (explain failure reason if `pass` is `no`)
-- `record.PR`: Link to the created PR
-
-### 3. Task Completion
-
-Continue processing until all records in the table have been completed (all `pass` fields filled).
 
 ## Important Notes
 
