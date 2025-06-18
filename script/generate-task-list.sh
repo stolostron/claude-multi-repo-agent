@@ -72,7 +72,7 @@ else
     }
     ' "$TARGET_FILE" | while read -r target; do
         if [[ -n "$target" ]]; then
-            echo "- [ ] NAME: $target DESCRIPTION:<task>$TASK_CONTENT</task><guide>$GUIDE_CONTENT</guide>" >> "$OUTPUT_FILE"
+            echo "- [ ] NAME:$target DESCRIPTION:<task>$TASK_CONTENT</task><guide>$GUIDE_CONTENT</guide>" >> "$OUTPUT_FILE"
         fi
     done
 fi
