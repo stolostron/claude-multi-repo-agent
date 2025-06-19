@@ -16,3 +16,5 @@ venv.bak/
 # Agent Code Workspace
 workspace/
 task-list.md
+task.md
+target.yml
