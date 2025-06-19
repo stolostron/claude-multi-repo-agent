@@ -9,11 +9,28 @@ cat > target.yml << 'EOF'
 # Here is an example of target, each item in the list represents a target repository and branch.
 # You can set multiple targets with different repos and different branches.
 # Example:
+# Here is an example of target, each item in the list represents a target repository and branch.
+# You can set multiple targets with different repos and different branches.
+# Example:
 target:
-    - repo: managedcluster-import-controller
+    - repo: ocm
       branch: main
     - repo: managedcluster-import-controller
-      branch: backplane-2.9
+      branch: main
+    - repo: multicloud-operators-foundation
+      branch: main
+    - repo: cluster-proxy
+      branch: main
+    - repo: cluster-proxy-addon
+      branch: main
+    - repo: managed-serviceaccount
+      branch: main
+    - repo: clusterlifecycle-state-metrics
+      branch: main
+    - repo: klusterlet-addon-controller
+      branch: main
+    - repo: cluster-lifecycle-api
+      branch: main
 EOF
 
 # Create task.md
