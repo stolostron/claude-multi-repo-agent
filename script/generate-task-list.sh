@@ -26,11 +26,11 @@ if [[ ! -f "$GUIDE_FILE" ]]; then
     exit 1
 fi
 
-# Read task content (everything from task.md)
-TASK_CONTENT=$(cat "$TASK_FILE")
+# Read task content (everything from task.md) and remove empty lines
+TASK_CONTENT=$(cat "$TASK_FILE" | sed '/^[[:space:]]*$/d')
 
-# Read guide content (everything from GUIDE.md)
-GUIDE_CONTENT=$(cat "$GUIDE_FILE")
+# Read guide content (everything from GUIDE.md) and remove empty lines
+GUIDE_CONTENT=$(cat "$GUIDE_FILE" | sed '/^[[:space:]]*$/d')
 
 # Start generating the task-list.md file
 echo "Generating $OUTPUT_FILE..."
@@ -46,7 +46,7 @@ if command -v yq &> /dev/null; then
     # Use yq for proper YAML parsing
     yq eval '.target[] | .repo + "/" + .branch' "$TARGET_FILE" 2>/dev/null | while read -r target; do
         if [[ -n "$target" && "$target" != "null" ]]; then
-            echo "- [ ] NAME: $target DESCRIPTION:<task>$TASK_CONTENT</task><guide>$GUIDE_CONTENT</guide>" >> "$OUTPUT_FILE"
+            echo "- [ ] NAME: $target DESCRIPTION:<task>${TASK_CONTENT//$'\n'/\/n}</task><guide>${GUIDE_CONTENT//$'\n'/\/n}</guide>" >> "$OUTPUT_FILE"
         fi
     done
 else
@@ -72,12 +72,9 @@ else
     }
     ' "$TARGET_FILE" | while read -r target; do
         if [[ -n "$target" ]]; then
-            echo "- [ ] NAME:$target DESCRIPTION:<task>$TASK_CONTENT</task><guide>$GUIDE_CONTENT</guide>" >> "$OUTPUT_FILE"
+            echo "- [ ] NAME:$target DESCRIPTION:<task>${TASK_CONTENT//$'\n'/\/n}</task><guide>${GUIDE_CONTENT//$'\n'/\/n}</guide>" >> "$OUTPUT_FILE"
         fi
     done
 fi
 
 echo "Successfully generated $OUTPUT_FILE"
-echo "Contents:"
-echo "----------------------------------------"
-cat "$OUTPUT_FILE"
