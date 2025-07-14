@@ -7,7 +7,7 @@ This guide describes the automated workflow for processing multiple Git reposito
 ### Workspace Directory
 
 - **`workspace/`**: Contains multiple project directories
-  - Each subdirectory is a separate Git repository
+- Each subdirectory is a separate Git repository
 
 ## Project Configuration
 
@@ -20,6 +20,7 @@ upstream  → Original project repository (PR target)
 
 - Default branch: `main`
 - Release branches follow the pattern: `backplane-2.x`
+- Upstream is determined by the task NAME, the NAME is in format <upstream>/<repo>/<branch>, it could be `stolostron` or `open-cluster-management-io`, use `git remote add upstream git@github.com:<upstream>/<repo>.git` for easy checking.
 
 ## Workflow Process
 
@@ -128,4 +129,4 @@ gh pr create \
 | Checkout upstream branch | `git checkout upstream/<branch>`            |
 | Create feature branch    | `git checkout -b <branch-name>`             |
 | Signed commit            | `git commit -s -m "message"`                |
-| Create PR                | `gh pr create --repo stolostron/<repo> ...` |
+| Create PR                | `gh pr create --repo <remote>/<repo> ...` |

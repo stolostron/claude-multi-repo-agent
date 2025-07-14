@@ -40,11 +40,11 @@ cat > "$OUTPUT_FILE" << 'EOF'
 [ ] NAME:Current Task List DESCRIPTION:Root task for conversation **NEW_AGENT**
 EOF
 
-# Parse target.yml and extract repo/branch pairs
+# Parse target.yml and extract upstream/repo/branch pairs
 # This uses yq to parse YAML, but falls back to basic parsing if yq is not available
 if command -v yq &> /dev/null; then
     # Use yq for proper YAML parsing
-    yq eval '.target[] | .repo + "/" + .branch' "$TARGET_FILE" 2>/dev/null | while read -r target; do
+    yq eval '.target[] | .upstream + "/" + .repo + "/" + .branch' "$TARGET_FILE" 2>/dev/null | while read -r target; do
         if [[ -n "$target" && "$target" != "null" ]]; then
             echo "- [ ] NAME: $target DESCRIPTION:<task>${TASK_CONTENT//$'\n'/\/n}</task><guide>${GUIDE_CONTENT//$'\n'/\/n}</guide>" >> "$OUTPUT_FILE"
         fi
@@ -53,10 +53,15 @@ else
     # Fallback: Basic parsing without yq
     echo "Warning: yq not found, using basic YAML parsing"
 
-    # Extract repo and branch pairs from YAML
+    # Extract upstream/repo/branch from YAML
     awk '
-    /^[[:space:]]*-[[:space:]]*repo:/ {
-        gsub(/^[[:space:]]*-[[:space:]]*repo:[[:space:]]*/, "")
+    /^[[:space:]]*upstream:/ {
+        gsub(/^[[:space:]]*upstream:[[:space:]]*/, "")
+        gsub(/[[:space:]]*$/, "")
+        upstream = $0
+    }
+    /^[[:space:]]*repo:/ {
+        gsub(/^[[:space:]]*repo:[[:space:]]*/, "")
         gsub(/[[:space:]]*$/, "")
         repo = $0
     }
@@ -64,8 +69,9 @@ else
         gsub(/^[[:space:]]*branch:[[:space:]]*/, "")
         gsub(/[[:space:]]*$/, "")
         branch = $0
-        if (repo != "" && branch != "") {
-            print repo "/" branch
+        if (upstream != "" && repo != "" && branch != "") {
+            print upstream "/" repo "/" branch
+            upstream = ""
             repo = ""
             branch = ""
         }

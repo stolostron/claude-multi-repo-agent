@@ -41,7 +41,7 @@ for repo in "${REPOS[@]}"; do
     echo "Repository '$repo' already exists, skipping..."
   else
     echo "Cloning $repo..."
-    git clone "https://github.com/$GITHUB_USER/$repo.git"
+    git clone "https://github.com/$GITHUB_USER/$repo.git" --depth 1
     if [ $? -eq 0 ]; then
       echo "Successfully cloned $repo"
     else

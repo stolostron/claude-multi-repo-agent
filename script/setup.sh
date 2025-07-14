@@ -14,22 +14,31 @@ cat > target.yml << 'EOF'
 # Example:
 target:
     - repo: ocm
-      branch: main
-    - repo: managedcluster-import-controller
-      branch: main
-    - repo: multicloud-operators-foundation
-      branch: main
-    - repo: cluster-proxy
-      branch: main
-    - repo: cluster-proxy-addon
+      upstream: open-cluster-management-io
       branch: main
     - repo: managed-serviceaccount
+      upstream: open-cluster-management-io
+      branch: main
+    - repo: cluster-proxy
+      upstream: open-cluster-management-io
+      branch: main
+    - repo: cluster-proxy-addon
+      upstream: stolostron
+      branch: main
+    - repo: managedcluster-import-controller
+      upstream: stolostron
+      branch: main
+    - repo: multicloud-operators-foundation
+      upstream: stolostron
       branch: main
     - repo: clusterlifecycle-state-metrics
+      upstream: stolostron
       branch: main
     - repo: klusterlet-addon-controller
+      upstream: stolostron
       branch: main
     - repo: cluster-lifecycle-api
+      upstream: stolostron
       branch: main
 EOF
 
