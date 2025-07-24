@@ -1,4 +1,4 @@
-Currently the code-agent is based on task list feature of augementcode.
+Currently the code-agent is based on task list feature of [AugementCode](https://www.augmentcode.com/).
 
 First run `./script/setup.sh` and `./script/setup-repos.sh`.
 
