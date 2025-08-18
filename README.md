@@ -1,94 +1,74 @@
-# Server Foundation Code Agent
+# Server Foundation Code Agent (Claude Code Based)
 
-This repository provides two approaches for automated code processing across multiple repositories:
+This repository provides a Claude Code-based approach for automated code processing across multiple Open Cluster Management (OCM) repositories.
 
-1. **Augment Code-based approach** (original method)
-2. **Gemini CLI-based approach** (new CI mode)
+## Quick Start
 
-## Prerequisites
+### 1. Initial Setup
 
-First run the setup scripts:
+Run the setup scripts to prepare your environment:
 
 ```bash
-./script/setup.sh
-./script/setup-repos.sh
+./script/setup.sh          # Creates target.yml and task.md template files
+./script/setup-repos.sh    # Clones OCM repositories to workspace/ directory
 ```
 
-Then modify 2 files: `task.md` and `target.yml` according to your requirements.
+### 2. Configure Your Task
 
----
+Edit the generated files according to your requirements:
+- `task.md`: Define the task description and objectives
+- `target.yml`: Specify target repositories and branches
 
-## Approach 1: Augment Code-based (Original)
+### 3. Generate Individual Tasks
 
-This approach uses Augment Code's task list feature for interactive task management.
+```bash
+./script/generate-tasks.sh
+```
 
-### Steps:
+This creates individual task files in the `tasks/` directory, one for each repository-branch combination defined in `target.yml`.
 
-1. Run the task list generator:
-   ```bash
-   ./script/generate-task-list.sh
-   ```
-   This will generate a `task-list.md` file.
+### 4. Execute Tasks
 
-2. Import the task list into Augment Code:
+Choose one of the following execution methods:
 
-   <img width="593" alt="image" src="https://github.com/user-attachments/assets/c782e2c0-94c8-4427-b95e-c701a3fbd87e" />
+#### Option A: Run All Tasks Automatically
+```bash
+./script/run-tasks.sh                # Print output directly to console
+./script/run-tasks.sh --save-logs    # Save output to log files in logs/
+```
 
-   Import the task-list.md and you will find tasks listed in the task panel:
+#### Option B: Manual Execution via Claude CLI
+Process individual task files manually:
+```bash
+cat tasks/001_ocm_main.md | claude -p "Execute this task"
+```
 
-   <img width="601" alt="image" src="https://github.com/user-attachments/assets/53cb7132-bf9c-4dc1-96ed-57f0b6cc2ae6" />
+## Scripts Overview
 
-3. Execute all tasks:
-
-   <img width="212" alt="image" src="https://github.com/user-attachments/assets/8df689a0-b68d-4a1c-8567-fa93f3e16c2d" />
-
----
-
-## Approach 2: Gemini CLI-based (CI Mode)
-
-This approach uses Gemini CLI for automated, non-interactive task execution suitable for CI/CD pipelines.
-
-### Prerequisites:
-
-- Install [Gemini CLI](https://github.com/google/generative-ai-cli)
-- Install [yq](https://github.com/mikefarah/yq) for YAML parsing:
-  ```bash
-  brew install yq
-  ```
-
-### Steps:
-
-1. Generate the Gemini task list:
-   ```bash
-   ./script/generate-task-list-for-gemini.sh
-   ```
-   This will generate a `gemini-task-list.yml` file with structured tasks.
-
-2. Execute all tasks automatically:
-   ```bash
-   ./script/run-gemini-task-list.sh
-   ```
-   This script will:
-   - Process each task in the YAML file
-   - Navigate to the corresponding repository directory
-   - Execute the task using `gemini --yolo -p "<prompt>"`
-   - Log all execution details to `gemini-execution.log`
-
-### Features:
-
-- **Non-interactive execution**: Suitable for CI/CD pipelines
-- **Detailed logging**: All execution details are logged
-- **Error handling**: Failed tasks are reported with details
-- **Progress tracking**: Shows current task progress
-- **Automatic directory navigation**: Changes to each repository's directory automatically
-
----
+| Script | Purpose |
+|--------|---------|
+| `setup.sh` | Creates initial `target.yml` and `task.md` template files |
+| `setup-repos.sh` | Clones OCM repositories from your GitHub forks to `workspace/` |
+| `generate-tasks.sh` | Generates individual task files from `target.yml` and `task.md` |
+| `run-tasks.sh` | Executes all tasks automatically using Claude CLI |
 
 ## File Structure
 
-- `task.md`: Contains the task description to be executed
-- `target.yml`: Defines target repositories and branches
-- `GUIDE.md`: Contains workflow guidelines and best practices
-- `script/generate-task-list.sh`: Generates task list for Augment Code
-- `script/generate-task-list-for-gemini.sh`: Generates YAML task list for Gemini CLI
-- `script/run-gemini-task-list.sh`: Executes Gemini CLI tasks automatically
+- `task.md`: Task description template (created by setup.sh)
+- `target.yml`: Repository and branch configuration (created by setup.sh)
+- `CLAUDE.md`: Workflow guidelines and project instructions
+- `workspace/`: Contains cloned repositories (created by setup-repos.sh)
+- `tasks/`: Individual task files (created by generate-tasks.sh)
+- `logs/`: Task execution logs (created by run-tasks.sh --save-logs)
+
+## Supported OCM Repositories
+
+- ocm
+- managedcluster-import-controller
+- multicloud-operators-foundation
+- cluster-proxy
+- cluster-proxy-addon
+- managed-serviceaccount
+- clusterlifecycle-state-metrics
+- klusterlet-addon-controller
+- cluster-lifecycle-api

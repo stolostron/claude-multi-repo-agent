@@ -13,9 +13,10 @@ ENV/
 env.bak/
 venv.bak/
 
-# Agent Code Workspace
 workspace/
-task-list.md
+tasks/
+logs/
 task.md
 target.yml
-gemini-task-list.yml
+
+!./claude/agents/
