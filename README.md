@@ -231,10 +231,6 @@ The tool includes built-in validation:
 
 This tool is designed to be organization-agnostic and can work with any GitHub repositories you have access to. Feel free to customize the workflow files and scripts for your specific needs.
 
-## 📄 License
-
-[Your License Here]
-
 ---
 
 **💡 Pro Tip**: Use this tool for routine maintenance tasks like dependency updates, documentation syncing, configuration standardization, and compliance checks across your entire repository ecosystem.
