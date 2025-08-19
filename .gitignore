@@ -18,5 +18,3 @@ tasks/
 logs/
 task.md
 target.yml
-
-!./claude/agents/

@@ -1,74 +1,240 @@
-# Server Foundation Code Agent (Claude Code Based)
+# Claude Multi-Repo Agent
 
-This repository provides a Claude Code-based approach for automated code processing across multiple Open Cluster Management (OCM) repositories.
+A powerful automation toolkit that leverages Claude Code to execute tasks across multiple GitHub repositories simultaneously. Perfect for batch operations, code maintenance, and cross-repository updates.
 
-## Quick Start
+## ✨ Key Features
 
-### 1. Initial Setup
+- 🔄 **Multi-Repository Processing**: Execute tasks across multiple repositories in parallel
+- 🍴 **Smart Fork Management**: Automatically forks and clones repositories if needed
+- 🎯 **Flexible Targeting**: Configure organizations, repositories, and branches with ease
+- 🤖 **Claude-Powered**: Leverages Claude Code for intelligent task execution
+- 📊 **Progress Tracking**: Comprehensive logging and execution summaries
+- ⚡ **One-Click Automation**: Generate and run tasks with a single command
 
-Run the setup scripts to prepare your environment:
+## 🚀 Quick Start
+
+### Prerequisites
+
+- [Claude Code CLI](https://claude.ai/code) installed and authenticated
+- [GitHub CLI (`gh`)](https://cli.github.com/) installed and authenticated
+- `yq` (optional, for better YAML parsing)
+
+### 1. Clone and Setup
 
 ```bash
-./script/setup.sh          # Creates target.yml and task.md template files
-./script/setup-repos.sh    # Clones OCM repositories to workspace/ directory
+git clone git@github.com:stolostron/claude-multi-repo-agent.git
+cd claude-multi-repo-agent
 ```
 
 ### 2. Configure Your Task
 
-Edit the generated files according to your requirements:
-- `task.md`: Define the task description and objectives
-- `target.yml`: Specify target repositories and branches
+Create or edit the configuration files:
 
-### 3. Generate Individual Tasks
-
-```bash
-./script/generate-tasks.sh
+#### `target.yml` - Define target repositories
+```yaml
+target:
+  - org: facebook           # GitHub organization
+    repos: [react, create-react-app]
+    branches: [main, develop]
+  - org: microsoft
+    repos: [vscode]
+    branches: [main]
 ```
 
-This creates individual task files in the `tasks/` directory, one for each repository-branch combination defined in `target.yml`.
+#### `task.md` - Define your task
+```markdown
+# Task Description
+Update all package.json files to use Node.js 18 as the minimum version.
 
-### 4. Execute Tasks
-
-Choose one of the following execution methods:
-
-#### Option A: Run All Tasks Automatically
-```bash
-./script/run-tasks.sh                # Print output directly to console
-./script/run-tasks.sh --save-logs    # Save output to log files in logs/
+## Requirements
+- Change "node": ">=16.0.0" to "node": ">=18.0.0"
+- Update any related documentation
+- Ensure tests still pass
 ```
 
-#### Option B: Manual Execution via Claude CLI
-Process individual task files manually:
-```bash
-cat tasks/001_ocm_main.md | claude -p "Execute this task"
+#### `GUIDE.md` - Workflow instructions (optional)
+```markdown
+# Custom Workflow Guide
+Add any specific instructions for how tasks should be executed.
 ```
 
-## Scripts Overview
+### 3. Execute Tasks
 
-| Script | Purpose |
-|--------|---------|
-| `setup.sh` | Creates initial `target.yml` and `task.md` template files |
-| `setup-repos.sh` | Clones OCM repositories from your GitHub forks to `workspace/` |
-| `generate-tasks.sh` | Generates individual task files from `target.yml` and `task.md` |
-| `run-tasks.sh` | Executes all tasks automatically using Claude CLI |
+#### Option A: All-in-One (Recommended)
+```bash
+./gen-and-run-tasks.sh
+```
 
-## File Structure
+#### Option B: Step-by-Step
+```bash
+# Generate task files only
+./gen-and-run-tasks.sh --generate-only
 
-- `task.md`: Task description template (created by setup.sh)
-- `target.yml`: Repository and branch configuration (created by setup.sh)
-- `CLAUDE.md`: Workflow guidelines and project instructions
-- `workspace/`: Contains cloned repositories (created by setup-repos.sh)
-- `tasks/`: Individual task files (created by generate-tasks.sh)
-- `logs/`: Task execution logs (created by run-tasks.sh --save-logs)
+# Execute pre-generated tasks
+./gen-and-run-tasks.sh --run-only
 
-## Supported OCM Repositories
+# Save execution logs to files
+./gen-and-run-tasks.sh --save-logs
+```
 
-- ocm
-- managedcluster-import-controller
-- multicloud-operators-foundation
-- cluster-proxy
-- cluster-proxy-addon
-- managed-serviceaccount
-- clusterlifecycle-state-metrics
-- klusterlet-addon-controller
-- cluster-lifecycle-api
+## 📋 Command Options
+
+| Option | Description |
+|--------|-------------|
+| `--generate-only` | Only generate task files, don't execute them |
+| `--run-only` | Execute existing task files without regenerating |
+| `--save-logs` | Save Claude CLI output to log files |
+| `--help, -h` | Show help message |
+
+## 📁 Project Structure
+
+```
+claude-multi-repo-agent/
+├── gen-and-run-tasks.sh    # Main automation script
+├── target.yml              # Repository and branch configuration
+├── task.md                 # Task description
+├── GUIDE.md                # Workflow guidelines (optional)
+├── CLAUDE.md               # Project instructions for Claude
+├── workspace/              # Auto-managed repository clones
+│   ├── repo1/
+│   ├── repo2/
+│   └── ...
+├── tasks/                  # Generated task files
+│   ├── 001_repo1_main.md
+│   ├── 002_repo1_develop.md
+│   └── ...
+└── logs/                   # Execution logs (with --save-logs)
+    ├── 001_repo1_main.log
+    └── ...
+```
+
+## 🔧 Configuration Reference
+
+### target.yml Structure
+
+```yaml
+target:
+  - org: organization-name    # Required: GitHub organization
+    repos:                   # Required: List of repositories
+      - repository-1
+      - repository-2
+    branches:                # Required: List of branches
+      - main
+      - develop
+      - feature-branch
+```
+
+### Automatic Repository Management
+
+The tool automatically handles repository setup:
+
+1. **Check Workspace**: Looks for repositories in the `workspace/` directory
+2. **Fork Detection**: Checks if you've already forked the target repository
+3. **Auto-Fork**: Creates a fork if none exists
+4. **Clone**: Clones your fork to the workspace
+5. **Upstream Setup**: Adds the original repository as upstream remote
+
+## 📝 Task File Format
+
+Generated task files include:
+
+```markdown
+# Task: repo-name/branch-name (from org/repo-name)
+
+## Repository Info
+- **Organization**: org-name
+- **Repository**: repo-name
+- **Branch**: branch-name
+- **Workspace Path**: workspace/repo-name
+
+## Guide
+<guide>
+<!-- Content from GUIDE.md -->
+</guide>
+
+## Description
+<task>
+<!-- Content from task.md -->
+</task>
+```
+
+## 🔄 Workflow Examples
+
+### Example 1: Update Dependencies Across Repositories
+```yaml
+# target.yml
+target:
+  - org: mycompany
+    repos: [frontend, backend, mobile-app]
+    branches: [main, develop]
+```
+
+```markdown
+<!-- task.md -->
+# Update Dependencies
+Update all projects to use the latest LTS versions of their runtime dependencies.
+```
+
+### Example 2: Security Patch Application
+```yaml
+# target.yml
+target:
+  - org: opensource-org
+    repos: [project-a, project-b, project-c]
+    branches: [main, release-1.0, release-2.0]
+```
+
+### Example 3: Documentation Updates
+```yaml
+# target.yml
+target:
+  - org: documentation-team
+    repos: [docs-site, api-docs, user-guides]
+    branches: [main]
+```
+
+## 🛠️ Advanced Usage
+
+### Custom Claude Prompts
+
+Modify the task execution prompt in `gen-and-run-tasks.sh`:
+
+```bash
+claude -p "Execute this task with special consideration for X"
+```
+
+### Integration with CI/CD
+
+Run in automated environments:
+
+```bash
+# Non-interactive mode with logging
+./gen-and-run-tasks.sh --save-logs
+```
+
+### Filtering and Validation
+
+The tool includes built-in validation:
+- GitHub authentication check
+- Repository access verification
+- Branch existence validation
+
+## 🚨 Best Practices
+
+1. **Test First**: Start with a small subset of repositories
+2. **Use Branches**: Work on feature branches, not main/master
+3. **Review Changes**: Always review generated changes before merging
+4. **Backup Important**: Keep backups of critical repositories
+5. **Monitor Logs**: Use `--save-logs` for debugging and auditing
+
+## 🤝 Contributing
+
+This tool is designed to be organization-agnostic and can work with any GitHub repositories you have access to. Feel free to customize the workflow files and scripts for your specific needs.
+
+## 📄 License
+
+[Your License Here]
+
+---
+
+**💡 Pro Tip**: Use this tool for routine maintenance tasks like dependency updates, documentation syncing, configuration standardization, and compliance checks across your entire repository ecosystem.

@@ -1,4 +1,4 @@
-# Server Foundation Code Agent Workflow Guide
+# Workflow Guide
 
 ## Overview
 
@@ -87,7 +87,7 @@ Use GitHub CLI to create PR from fork to upstream:
 
 ```bash
 gh pr create \
-  --repo stolostron/<repo-name> \
+  --repo <org>/<repo-name> \
   --base <base-branch> \
   --head <github-username>:<branch-name> \
   --title "..." \
@@ -128,4 +128,4 @@ gh pr create \
 | Checkout upstream branch | `git checkout upstream/<branch>`            |
 | Create feature branch    | `git checkout -b <branch-name>`             |
 | Signed commit            | `git commit -s -m "message"`                |
-| Create PR                | `gh pr create --repo stolostron/<repo> ...` |
+| Create PR                | `gh pr create --repo <org>/<repo> ...`      |
