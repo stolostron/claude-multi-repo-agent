@@ -4,6 +4,34 @@
 
 set -e
 
+# Function to format timestamp
+format_timestamp() {
+    date '+%Y-%m-%d %H:%M:%S'
+}
+
+# Function to calculate duration in seconds
+calculate_duration() {
+    local start_time="$1"
+    local end_time="$2"
+    echo $((end_time - start_time))
+}
+
+# Function to format duration in human readable format
+format_duration() {
+    local duration="$1"
+    local hours=$((duration / 3600))
+    local minutes=$(((duration % 3600) / 60))
+    local seconds=$((duration % 60))
+    
+    if [ $hours -gt 0 ]; then
+        printf "%dh %dm %ds" $hours $minutes $seconds
+    elif [ $minutes -gt 0 ]; then
+        printf "%dm %ds" $minutes $seconds
+    else
+        printf "%ds" $seconds
+    fi
+}
+
 # Function to show usage
 show_usage() {
     echo "Usage: $0 [OPTIONS]"
@@ -322,18 +350,20 @@ if [[ "$GENERATE_ONLY" != "true" ]]; then
         local task_name=$(basename "$task_file" .md)
         local log_file="$LOG_DIR/${task_name}.log"
         
+        local start_timestamp=$(format_timestamp)
+        local start_time=$(date +%s)
+        
         echo "Processing: $task_file"
+        echo "Started at: $start_timestamp"
+        
+        local exit_code=0
         
         if [[ "$SAVE_LOGS" == "true" ]]; then
             # Run Claude CLI and save output to log file
             if cat "$task_file" | claude -p "Execute this task" --verbose --output-format text --dangerously-skip-permissions > "$log_file" 2>&1; then
-                echo "✓ Completed: $task_name"
-                echo "  Log: $log_file"
-                return 0
+                exit_code=0
             else
-                echo "✗ Failed: $task_name"
-                echo "  Log: $log_file"
-                return 1
+                exit_code=1
             fi
         else
             # Run Claude CLI and print output directly
@@ -341,18 +371,42 @@ if [[ "$GENERATE_ONLY" != "true" ]]; then
             echo "========================"
             if cat "$task_file" | claude -p "Execute this task" --verbose --output-format text --dangerously-skip-permissions; then
                 echo "========================"
-                echo "✓ Completed: $task_name"
-                return 0
+                exit_code=0
             else
                 echo "========================"
-                echo "✗ Failed: $task_name"
-                return 1
+                exit_code=1
             fi
+        fi
+        
+        local end_timestamp=$(format_timestamp)
+        local end_time=$(date +%s)
+        local duration=$(calculate_duration $start_time $end_time)
+        local formatted_duration=$(format_duration $duration)
+        
+        echo "Finished at: $end_timestamp"
+        echo "Duration: $formatted_duration"
+        
+        if [[ $exit_code -eq 0 ]]; then
+            echo "✓ Completed: $task_name"
+            if [[ "$SAVE_LOGS" == "true" ]]; then
+                echo "  Log: $log_file"
+            fi
+            return 0
+        else
+            echo "✗ Failed: $task_name"
+            if [[ "$SAVE_LOGS" == "true" ]]; then
+                echo "  Log: $log_file"
+            fi
+            return 1
         fi
     }
 
     # Process all tasks
+    local execution_start_timestamp=$(format_timestamp)
+    local execution_start_time=$(date +%s)
+    
     echo "Starting task execution..."
+    echo "Execution started at: $execution_start_timestamp"
     if [[ "$SAVE_LOGS" == "true" ]]; then
         echo "Logs will be saved to: $LOG_DIR/"
     else
@@ -371,9 +425,17 @@ if [[ "$GENERATE_ONLY" != "true" ]]; then
         echo ""
     done
 
+    local execution_end_timestamp=$(format_timestamp)
+    local execution_end_time=$(date +%s)
+    local total_duration=$(calculate_duration $execution_start_time $execution_end_time)
+    local formatted_total_duration=$(format_duration $total_duration)
+
     # Summary
     echo "================================"
     echo "Task Execution Summary:"
+    echo "  Started at: $execution_start_timestamp"
+    echo "  Finished at: $execution_end_timestamp"
+    echo "  Total duration: $formatted_total_duration"
     echo "  Successful: $SUCCESSFUL"
     echo "  Failed: $FAILED"
     echo "  Total: ${#TASK_FILES[@]}"
