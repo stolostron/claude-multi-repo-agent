@@ -408,8 +408,8 @@ if [[ "$GENERATE_ONLY" != "true" ]]; then
     }
 
     # Process all tasks
-    local execution_start_timestamp=$(format_timestamp)
-    local execution_start_time=$(date +%s)
+    execution_start_timestamp=$(format_timestamp)
+    execution_start_time=$(date +%s)
     
     echo "Starting task execution..."
     echo "Execution started at: $execution_start_timestamp"
@@ -431,10 +431,10 @@ if [[ "$GENERATE_ONLY" != "true" ]]; then
         echo ""
     done
 
-    local execution_end_timestamp=$(format_timestamp)
-    local execution_end_time=$(date +%s)
-    local total_duration=$(calculate_duration $execution_start_time $execution_end_time)
-    local formatted_total_duration=$(format_duration $total_duration)
+    execution_end_timestamp=$(format_timestamp)
+    execution_end_time=$(date +%s)
+    total_duration=$(calculate_duration $execution_start_time $execution_end_time)
+    formatted_total_duration=$(format_duration $total_duration)
 
     # Summary
     echo "================================"
