@@ -52,10 +52,14 @@ Update all package.json files to use Node.js 18 as the minimum version.
 - Ensure tests still pass
 ```
 
-#### `GUIDE.md` - Workflow instructions (optional)
+#### `GUIDE.md` - Task execution guidelines (optional)
 ```markdown
 # Custom Workflow Guide
-Add any specific instructions for how tasks should be executed.
+
+Provides standardized workflow instructions that guide how each task should be executed.
+Includes guidelines from feature development to PR submission.
+
+Users can customize the entire workflow by specifying their own guide file.
 ```
 
 ### 3. Execute Tasks
@@ -75,12 +79,16 @@ Add any specific instructions for how tasks should be executed.
 
 # Save execution logs to files
 ./gen-and-run-tasks.sh --save-logs
+
+# Use custom guide file
+./gen-and-run-tasks.sh --guide-file my-custom-guide.md
 ```
 
 ## 📋 Command Options
 
 | Option | Description |
 |--------|-------------|
+| `--guide-file FILE` | Specify custom guide file (default: GUIDE.md) |
 | `--generate-only` | Only generate task files, don't execute them |
 | `--run-only` | Execute existing task files without regenerating |
 | `--save-logs` | Save Claude CLI output to log files |
@@ -93,8 +101,9 @@ claude-multi-repo-agent/
 ├── gen-and-run-tasks.sh    # Main automation script
 ├── target.yml              # Repository and branch configuration
 ├── task.md                 # Task description
-├── GUIDE.md                # Workflow guidelines (optional)
+├── GUIDE.md                # Default workflow guidelines
 ├── CLAUDE.md               # Project instructions for Claude
+├── custom-guide.md         # Optional custom guide file
 ├── workspace/              # Auto-managed repository clones
 │   ├── repo1/
 │   ├── repo2/
@@ -107,6 +116,38 @@ claude-multi-repo-agent/
     ├── 001_repo1_main.log
     └── ...
 ```
+
+## 📝 Guide Files
+
+### Default Guide (GUIDE.md)
+
+The project includes a default `GUIDE.md` file that contains standardized workflow instructions for:
+- Feature development best practices
+- Code quality standards
+- Testing requirements
+- Pull request submission guidelines
+- Documentation requirements
+
+### Custom Guide Files
+
+You can create and use custom guide files for specific scenarios:
+
+```bash
+# Use organization-specific workflow
+./gen-and-run-tasks.sh --guide-file guides/company-workflow.md
+
+# Use security-focused guidelines
+./gen-and-run-tasks.sh --guide-file guides/security-updates.md
+
+# Use minimal instructions for simple tasks
+./gen-and-run-tasks.sh --guide-file guides/minimal.md
+```
+
+**Benefits of Custom Guides:**
+- Tailor workflows to specific requirements
+- Enforce organization standards
+- Provide domain-specific instructions
+- Support different project types
 
 ## 🔧 Configuration Reference
 

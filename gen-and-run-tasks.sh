@@ -37,6 +37,7 @@ show_usage() {
     echo "Usage: $0 [OPTIONS]"
     echo ""
     echo "Options:"
+    echo "  --guide-file FILE   Specify custom guide file (default: GUIDE.md)"
     echo "  --generate-only     Only generate task files, don't run them"
     echo "  --run-only         Only run existing task files (skip generation)"
     echo "  --save-logs        Save Claude CLI output to log files (when running)"
@@ -49,9 +50,14 @@ show_usage() {
 GENERATE_ONLY=false
 RUN_ONLY=false
 SAVE_LOGS=false
+GUIDE_FILE="GUIDE.md"
 
 while [[ $# -gt 0 ]]; do
     case $1 in
+        --guide-file)
+            GUIDE_FILE="$2"
+            shift 2
+            ;;
         --generate-only)
             GENERATE_ONLY=true
             shift
@@ -85,7 +91,7 @@ fi
 # Define file paths
 TARGET_FILE="target.yml"
 TASK_FILE="task.md"
-GUIDE_FILE="GUIDE.md"
+# GUIDE_FILE is set by command line arguments or defaults to "GUIDE.md"
 OUTPUT_DIR="tasks"
 LOG_DIR="logs"
 WORKSPACE_DIR="workspace"
