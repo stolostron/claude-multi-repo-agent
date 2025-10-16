@@ -1,0 +1,5 @@
+{
+  "parallel": true,
+  "saveLogs": false,
+  "maxJobs": 8
+}
