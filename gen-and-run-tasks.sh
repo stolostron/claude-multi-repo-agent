@@ -409,11 +409,15 @@ if [[ "$RUN_ONLY" != "true" ]]; then
             fi
         fi
 
-        # Add upstream remote
-        echo "   🔗 Adding upstream remote $org/$repo..."
+        # Add or update upstream remote
+        echo "   🔗 Configuring upstream remote to $org/$repo..."
         cd "$repo_dir"
-        if ! git remote add upstream "https://github.com/$org/$repo.git"; then
-            echo "   ⚠️  Warning: Failed to add upstream remote (may already exist)"
+        if git remote get-url upstream &>/dev/null; then
+            echo "   🔄 Upstream remote exists, updating to https://github.com/$org/$repo.git"
+            git remote set-url upstream "https://github.com/$org/$repo.git"
+        else
+            echo "   ➕ Adding upstream remote https://github.com/$org/$repo.git"
+            git remote add upstream "https://github.com/$org/$repo.git"
         fi
         cd - > /dev/null
 
