@@ -12,13 +12,13 @@ find_latest_bash() {
         "/bin/bash"
         "/usr/bin/bash"
     )
-    
+
     local latest_version=""
     local latest_path=""
     local latest_major=0
     local latest_minor=0
     local latest_patch=0
-    
+
     for bash_path in "${bash_paths[@]}"; do
         if [[ -x "$bash_path" ]]; then
             # Get version info from this bash executable
@@ -27,7 +27,7 @@ find_latest_bash() {
                 local major=${BASH_REMATCH[1]}
                 local minor=${BASH_REMATCH[2]}
                 local patch=${BASH_REMATCH[3]}
-                
+
                 # Compare versions (major.minor.patch)
                 if [[ $major -gt $latest_major ]] || \
                    [[ $major -eq $latest_major && $minor -gt $latest_minor ]] || \
@@ -41,7 +41,7 @@ find_latest_bash() {
             fi
         fi
     done
-    
+
     echo "$latest_path|$latest_version|$latest_major"
 }
 
@@ -742,11 +742,11 @@ if [[ "$GENERATE_ONLY" != "true" ]]; then
         for task_file in "${tasks[@]}"; do
             # Extract repository name from task filename (format: 001_repo_branch.md)
             local filename=$(basename "$task_file" .md)
-            
+
             # Simple approach: split by underscores and take the middle part(s) as repo name
             # Remove the number prefix and branch suffix to get repo name
             local repo=$(echo "$filename" | sed 's/^[0-9]*_//' | sed 's/_[^_]*$//')
-            
+
             # Fallback: if no underscores remain, try basic parsing
             if [[ -z "$repo" ]]; then
                 repo=$(echo "$filename" | sed 's/^[0-9]*_\([^_]*\)_.*$/\1/')
