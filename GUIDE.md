@@ -18,26 +18,26 @@ origin    → User's forked repository
 upstream  → Original project repository (PR target)
 ```
 
-- Default branch: `main`
-- Release branches follow the pattern: `backplane-2.x`
+- Default branch: `main` or `master`
 
 ## Workflow Process
 
 ### 1. Task Initialization
 
-When the user initiates a task:
+Read the contents of <task>
 
-1. Read the contents of `task.md`
-2. Parse the Records table - each row is a project to process
-
-### 2. Project Processing Loop
-
-For each record in the table:
+### 2. Task Processing
 
 #### a. Navigate to Project
 
 ```bash
-cd workspace/<record.repo>
+pwd
+```
+
+If not in the correct project directory, and there is a `workspace/<project-name>`, change to it:
+
+```bash
+cd workspace/<project-name>
 ```
 
 #### b. Prepare Repository
@@ -53,14 +53,18 @@ git fetch --all
 git checkout upstream/<record.branch>
 ```
 
+**Note**: Always check out the working branch from the upstream remote, not origin. If the target branch does not exist in the upstream repository, stop the process for this project and report an error.
+
 #### c. Create Feature Branch
+
+**Note:** Always ensure that modifications are made on the target branch specified for the task.
 
 1. Generate a short branch name (max 5 words) based on `task.description`
 2. Follow Git branch naming best practices
 3. Create and checkout the new branch:
 
 ```bash
-git checkout -b <task_short_description>
+git checkout -b <task_short_description>-<branch-name>
 ```
 
 #### d. Execute Task
