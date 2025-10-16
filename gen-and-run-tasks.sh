@@ -778,6 +778,7 @@ if [[ "$GENERATE_ONLY" != "true" ]]; then
         local job_count=0
         local pids=()
         local result_files=()
+        local all_result_files=()  # Track all result files for final processing
 
         local parallel_start_time=$(date +%s)
         local parallel_start_timestamp=$(format_timestamp)
@@ -787,8 +788,13 @@ if [[ "$GENERATE_ONLY" != "true" ]]; then
 
         # Group tasks by repository
         local grouping_output=$(group_tasks_by_repo "${task_files[@]}")
-        # Convert to array - since we have single line output, just create array with one element
-        local repo_groups=("$grouping_output")
+        # Convert multi-line output to array - one element per line
+        local repo_groups=()
+        while IFS= read -r line; do
+            if [[ -n "$line" ]]; then
+                repo_groups+=("$line")
+            fi
+        done <<< "$grouping_output"
 
         echo "📂 Found ${#repo_groups[@]} repository groups to process"
 
@@ -830,6 +836,7 @@ if [[ "$GENERATE_ONLY" != "true" ]]; then
             # Create result file for this repository group
             local result_file="$temp_dir/result_${repo}_$$"
             result_files+=("$result_file")
+            all_result_files+=("$result_file")  # Also add to permanent list
 
             # Start background job for this repository group (tasks run sequentially within group)
             (
@@ -869,9 +876,9 @@ if [[ "$GENERATE_ONLY" != "true" ]]; then
         echo ""
         echo "📊 PARALLEL EXECUTION RESULTS"
         echo "════════════════════════════════════════"
-        echo "🔍 Expected ${#result_files[@]} result files to process"
+        echo "🔍 Expected ${#all_result_files[@]} result files to process"
 
-        for result_file in "${result_files[@]}"; do
+        for result_file in "${all_result_files[@]}"; do
             if [[ -f "$result_file" ]]; then
                 echo "🔍 Processing result file: $result_file"
                 while IFS='|' read -r status task_name start_time end_time duration log_file; do
