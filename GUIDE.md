@@ -105,6 +105,7 @@ gh pr create \
 - Title must be concise and in English
 - Description should use markdown format with detailed reasoning
 - Use `$'...'` syntax for proper escape sequence handling
+- If the target repo has a pull request template, follow it.
 
 ## Important Notes
 
