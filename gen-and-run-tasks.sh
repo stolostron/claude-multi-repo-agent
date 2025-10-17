@@ -368,6 +368,25 @@ if [[ "$RUN_ONLY" != "true" ]]; then
 
         if [[ -d "$repo_dir" ]]; then
             echo "   ✅ Repository $repo already exists in workspace"
+
+            # Update upstream remote if it differs from the configured org
+            echo "   🔗 Verifying upstream remote for $org/$repo..."
+            cd "$repo_dir"
+            local current_upstream=$(git remote get-url upstream 2>/dev/null || echo "")
+            local expected_upstream="https://github.com/$org/$repo.git"
+
+            if [[ "$current_upstream" != "$expected_upstream" ]]; then
+                echo "   🔄 Updating upstream from $current_upstream to $expected_upstream"
+                if [[ -n "$current_upstream" ]]; then
+                    git remote set-url upstream "$expected_upstream"
+                else
+                    git remote add upstream "$expected_upstream"
+                fi
+            else
+                echo "   ✅ Upstream remote already correct: $expected_upstream"
+            fi
+            cd - > /dev/null
+
             return 0
         fi
 
