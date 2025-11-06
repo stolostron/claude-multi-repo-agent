@@ -135,7 +135,7 @@ load_config() {
     # Set defaults
     CONFIG_PARALLEL="false"
     CONFIG_MAX_JOBS="4"
-    CONFIG_SAVE_LOGS="false"
+    CONFIG_SAVE_LOGS="true"
     CONFIG_GENERATE_ONLY="false"
     CONFIG_RUN_ONLY="false"
     CONFIG_GUIDE_FILE="GUIDE.md"
@@ -393,11 +393,20 @@ if [[ "$RUN_ONLY" != "true" ]]; then
         echo "   🔍 Repository $repo not found in workspace, checking for fork..."
 
         # Get current GitHub username
-        local current_user=$(gh api user --jq '.login' 2>/dev/null)
-        if [[ -z "$current_user" ]]; then
+        local gh_error_file=$(mktemp)
+        local current_user=$(gh api user --jq '.login' 2>"$gh_error_file")
+        local gh_exit_code=$?
+
+        if [[ $gh_exit_code -ne 0 || -z "$current_user" ]]; then
             echo "   ❌ Error: Could not get current GitHub user. Please check gh authentication."
+            if [[ -s "$gh_error_file" ]]; then
+                echo "   📋 GitHub API error details:"
+                cat "$gh_error_file" | sed 's/^/      /'
+            fi
+            rm -f "$gh_error_file"
             return 1
         fi
+        rm -f "$gh_error_file"
 
         # Check if user has already forked the repo
         local fork_exists=$(gh repo list "$current_user" --fork --json name --jq ".[].name" | grep "^$repo$" || true)
