@@ -4,6 +4,13 @@
 # MacOS
 .DS_Store
 
+# Node.js
+node_modules/
+package-lock.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
 # Environment variables
 .env
 .env.*

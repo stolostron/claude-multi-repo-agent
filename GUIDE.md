@@ -126,11 +126,11 @@ gh pr create \
 
 ## Quick Reference
 
-| Action                   | Command                                     |
-| ------------------------ | ------------------------------------------- |
-| Stash changes            | `git stash`                                 |
-| Fetch all remotes        | `git fetch --all`                           |
-| Checkout upstream branch | `git checkout upstream/<branch>`            |
-| Create feature branch    | `git checkout -b <branch-name>`             |
-| Signed commit            | `git commit -s -m "message"`                |
-| Create PR                | `gh pr create --repo <org>/<repo> ...`      |
+| Action                   | Command                                |
+| ------------------------ | -------------------------------------- |
+| Stash changes            | `git stash`                            |
+| Fetch all remotes        | `git fetch --all`                      |
+| Checkout upstream branch | `git checkout upstream/<branch>`       |
+| Create feature branch    | `git checkout -b <branch-name>`        |
+| Signed commit            | `git commit -s -m "message"`           |
+| Create PR                | `gh pr create --repo <org>/<repo> ...` |
