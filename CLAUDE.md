@@ -31,8 +31,7 @@ All tasks are organized using bundles. Each bundle is a directory containing:
 - Examples: `bundles/upgrade-deps/`, `bundles/security-patch/`, `bundles/docs-sync/`
 
 ### Configuration Files
-- `config.json`: Root configuration file (applies to all executions)
-- `GUIDE.md`: Root-level workflow instructions (used when bundle doesn't have its own)
+- `GUIDE.md`: Root-level workflow instructions (used when bundle doesn't have its own GUIDE.md)
 
 ### Directory Structure
 - `bundles/`: Task scenario bundles (each bundle contains target.yml, task.md, etc.)
@@ -134,20 +133,13 @@ The system automatically:
 
 ## Configuration System
 
-The system supports JSON-based configuration files to set default behavior:
-
-### Configuration Files
-
-1. **Root Configuration** (`config.json`): Default settings for all executions
-2. **Bundle Configuration** (`bundles/scenario/config.json`): Bundle-specific overrides
-
 ### Bundle Files
 
 Bundles can include any combination of these files:
 - `target.yml` (required): Repository and branch configuration
 - `task.md` (required): Task description and requirements
 - `GUIDE.md` (optional): Bundle-specific workflow instructions
-- `config.json` (optional): Bundle-specific configuration overrides
+- `config.json` (optional): Bundle-specific configuration
 
 ### Configuration Schema
 
@@ -158,7 +150,8 @@ Bundles can include any combination of these files:
   "saveLogs": false,
   "generateOnly": false,
   "runOnly": false,
-  "guideFile": "GUIDE.md"
+  "guideFile": "GUIDE.md",
+  "shallowClone": true
 }
 ```
 
@@ -166,35 +159,24 @@ Bundles can include any combination of these files:
 
 The system applies configuration in this priority order:
 1. **Command line options** (highest priority)
-2. **Bundle-specific config.json** 
-3. **Root config.json**
-4. **Built-in defaults** (lowest priority)
+2. **Bundle-specific config.json**
+3. **Built-in defaults** (lowest priority)
 
-### Examples
+### Example
 
-**Root Configuration** (`config.json`):
+**Bundle Configuration** (`bundles/security-patch/config.json`):
 ```json
 {
   "parallel": true,
-  "maxJobs": 2,
-  "saveLogs": true,
-  "guideFile": "GUIDE.md"
-}
-```
-
-**Bundle-specific Override** (`bundles/security-patch/config.json`):
-```json
-{
   "maxJobs": 8,
-  "generateOnly": true
+  "saveLogs": true
 }
 ```
 
-With these configs, running the script with `--bundle bundles/security-patch` would use:
-- `maxJobs: 8` (from bundle config)
-- `generateOnly: true` (from bundle config)
-- `parallel: true` and `saveLogs: true` (from root config)
+With this config, running `--bundle bundles/security-patch` would use:
+- `parallel: true`, `maxJobs: 8`, `saveLogs: true` (from bundle config)
 - Command line options would override any of these
+- Any unspecified options use built-in defaults
 
 ## Requirements
 

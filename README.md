@@ -135,9 +135,9 @@ Update all package.json files to use Node.js 18 as the minimum version.
 
 ### Configuration System
 
-Create `config.json` to set default behavior:
+Each bundle can have its own `config.json` to set default behavior:
 
-**Root Configuration** (`config.json`):
+**Bundle Configuration** (`bundles/scenario/config.json`):
 
 ```json
 {
@@ -149,16 +149,7 @@ Create `config.json` to set default behavior:
 }
 ```
 
-**Bundle Configuration** (`bundles/scenario/config.json`):
-
-```json
-{
-  "maxJobs": 8,
-  "generateOnly": false
-}
-```
-
-**Configuration Priority**: CLI options > Bundle config > Root config > Defaults
+**Configuration Priority**: CLI options > Bundle config > Defaults
 
 ## 📋 Command Options
 
@@ -187,7 +178,6 @@ claude-multi-repo-agent/
 │   ├── repository.mjs     # Repository operations
 │   ├── taskgen.mjs        # Task file generation
 │   └── utils.mjs          # Utility functions
-├── config.json             # Root configuration (optional)
 ├── GUIDE.md                # Root workflow guidelines (optional)
 ├── CLAUDE.md               # Project instructions for Claude
 ├── bundles/                # Task scenario bundles (REQUIRED)

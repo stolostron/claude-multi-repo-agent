@@ -24,9 +24,6 @@ workspace/
 tasks/
 logs/
 
-# Local configuration overrides (users can customize)
-config.json
-
 # Override global gitignore to track CLAUDE.md
 !CLAUDE.md
 !bundles-example/**
