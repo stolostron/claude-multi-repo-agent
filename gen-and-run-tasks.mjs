@@ -29,12 +29,6 @@ async function main() {
     // Validate configuration
     validateConfig(config);
 
-    // Apply special rules for parallel mode
-    if (config.parallel) {
-      config.saveLogs = true;
-      console.log('🚀 Parallel mode enabled: automatically enabling log saving');
-    }
-
     // Resolve file paths
     const paths = await resolveFilePaths(cliOptions.bundle, config.guideFile);
 
@@ -48,7 +42,7 @@ async function main() {
     if (!config.runOnly) {
       printHeader('📝 TASK GENERATION');
 
-      const generatedCount = await generateTasks(paths, config);
+      const generatedCount = await generateTasks(paths);
 
       console.log('');
       console.log(`🎉 Successfully generated ${generatedCount} tasks in ${paths.outputDir} directory`);
@@ -60,7 +54,7 @@ async function main() {
     if (!config.generateOnly) {
       printHeader('⚡ TASK EXECUTION');
 
-      const executionResult = await executeTasks(paths.outputDir, paths.logDir, config);
+      const executionResult = await executeTasks(paths.outputDir, config);
 
       // Print summary
       console.log('');
@@ -75,11 +69,7 @@ async function main() {
 
       if (executionResult.failed > 0) {
         console.log('');
-        if (executionResult.logDir) {
-          console.log(`⚠️  Some tasks failed. Check logs in ${executionResult.logDir}/ for details.`);
-        } else {
-          console.log('⚠️  Some tasks failed. See output above for details.');
-        }
+        console.log(`⚠️  Some tasks failed. Check execution.log files in ${executionResult.outputDir}/ for details.`);
         console.log('❌ Execution completed with failures.');
         process.exit(1);
       } else {

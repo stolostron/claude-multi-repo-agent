@@ -5,7 +5,7 @@ A powerful automation toolkit that leverages Claude Code to execute tasks across
 ## ✨ Key Features
 
 - 🔄 **Multi-Repository Processing**: Execute tasks across multiple repositories
-- ⚡ **Parallel Execution**: Speed up processing with concurrent repository groups
+- ⚡ **Flexible Concurrency**: Control parallelism with `--max-jobs` (1=sequential, >1=parallel)
 - 🍴 **Smart Fork Management**: Automatically forks and clones repositories if needed
 - 🎯 **Flexible Targeting**: Configure organizations, repositories, and branches with ease
 - 📦 **Bundle Support**: Organize task scenarios with predefined target/task combinations
@@ -66,18 +66,18 @@ zx gen-and-run-tasks.mjs --bundle bundles/my-task
 ### Using Zx Directly
 
 ```bash
-# Basic execution (bundle is required)
+# Basic execution (default: 4 parallel jobs)
 zx gen-and-run-tasks.mjs --bundle bundles/my-task
 
-# Parallel execution for faster processing
-zx gen-and-run-tasks.mjs --bundle bundles/upgrade-deps --parallel
+# Sequential execution (one at a time)
+zx gen-and-run-tasks.mjs --bundle bundles/my-task --max-jobs 1
+
+# Higher parallelism for faster processing
+zx gen-and-run-tasks.mjs --bundle bundles/upgrade-deps --max-jobs 8
 
 # Step-by-step execution
 zx gen-and-run-tasks.mjs --bundle bundles/my-task --generate-only
 zx gen-and-run-tasks.mjs --bundle bundles/my-task --run-only
-
-# With custom concurrency
-zx gen-and-run-tasks.mjs --bundle bundles/my-task --parallel --max-jobs 8
 ```
 
 ## ⚙️ Configuration
@@ -144,7 +144,6 @@ Each bundle can have its own `config.json` to set default behavior:
   "parallel": true,
   "maxJobs": 4,
   "saveLogs": true,
-  "shallowClone": true,
   "guideFile": "GUIDE.md"
 }
 ```
@@ -159,11 +158,7 @@ Each bundle can have its own `config.json` to set default behavior:
 | `--guide-file FILE` | Specify custom guide file (default: GUIDE.md)                      |
 | `--generate-only`   | Only generate task files, don't execute them                       |
 | `--run-only`        | Execute existing task files without regenerating                   |
-| `--save-logs`       | Save Claude CLI output to log files                                |
-| `--parallel`        | Execute tasks in parallel (automatically enables --save-logs)      |
-| `--max-jobs NUM`    | Maximum number of parallel jobs (default: 4, only with --parallel) |
-| `--shallow-clone`   | Use shallow clone (default: true)                                  |
-| `--full-clone`      | Use full clone with history                                        |
+| `--max-jobs NUM`    | Concurrency limit (default: 4, use 1 for sequential)              |
 | `--help, -h`        | Show help message                                                  |
 
 ## 📁 Project Structure
@@ -189,8 +184,11 @@ claude-multi-repo-agent/
 │   ├── security-patch/
 │   └── docs-sync/
 ├── workspace/              # Auto-managed repository clones
-├── tasks/                  # Generated task files
-└── logs/                   # Execution logs (with --save-logs)
+└── tasks/                  # Generated task worktrees
+    └── 001_repo_branch/    # Each task is a git worktree
+        ├── task.md         # Task instructions
+        ├── execution.log   # Execution output
+        └── (repo files)    # Full repository code
 ```
 
 ## 🔄 Workflow Examples
@@ -224,9 +222,7 @@ Create `bundles/upgrade-deps/config.json` (optional):
 
 ```json
 {
-  "parallel": true,
-  "maxJobs": 3,
-  "saveLogs": true
+  "maxJobs": 8
 }
 ```
 
@@ -243,11 +239,11 @@ zx gen-and-run-tasks.mjs --bundle bundles/upgrade-deps --max-jobs 1
 ### Example 2: Security Patch Bundle
 
 ```bash
-# Execute with bundle config (single-threaded for security patches)
+# Execute with bundle config
 zx gen-and-run-tasks.mjs --bundle bundles/security-patch
 
-# Override for emergency parallel execution
-zx gen-and-run-tasks.mjs --bundle bundles/security-patch --parallel --max-jobs 2
+# Override for sequential execution (safer for critical patches)
+zx gen-and-run-tasks.mjs --bundle bundles/security-patch --max-jobs 1
 ```
 
 ### Example 3: Documentation Sync
@@ -264,11 +260,11 @@ zx gen-and-run-tasks.mjs --run-only
 ### Integration with CI/CD
 
 ```bash
-# Non-interactive mode with logging
-zx gen-and-run-tasks.mjs --save-logs
-
 # Parallel execution for CI/CD (faster)
-zx gen-and-run-tasks.mjs --parallel --max-jobs 6
+zx gen-and-run-tasks.mjs --bundle bundles/my-task --max-jobs 6
+
+# Sequential for safer execution
+zx gen-and-run-tasks.mjs --bundle bundles/my-task --max-jobs 1
 ```
 
 ### Custom Guide Files
