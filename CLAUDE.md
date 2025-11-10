@@ -21,24 +21,23 @@ This project provides an automated system for executing Claude Code tasks across
 - **Built-in features**: YAML/JSON parsing, colored output, intelligent concurrency control
 - **Documentation**: See [README-ZX.md](README-ZX.md), [QUICKSTART-ZX.md](QUICKSTART-ZX.md)
 
-### Core Configuration Files
-- `target.yml`: Repository and branch configuration (root mode)
-- `task.md`: Task description and requirements (root mode)
-- `GUIDE.md`: Optional workflow instructions
-- `config.json`: Optional configuration overrides
-
 ### Bundle Organization
+All tasks are organized using bundles. Each bundle is a directory containing:
 - `bundles/`: Directory containing task scenario bundles
-  - `bundles/scenario-name/target.yml`: Bundle-specific repository configuration
-  - `bundles/scenario-name/task.md`: Bundle-specific task description
+  - `bundles/scenario-name/target.yml`: Repository and branch configuration (REQUIRED)
+  - `bundles/scenario-name/task.md`: Task description and requirements (REQUIRED)
   - `bundles/scenario-name/GUIDE.md`: Bundle-specific workflow instructions (optional)
+  - `bundles/scenario-name/config.json`: Bundle-specific configuration overrides (optional)
 - Examples: `bundles/upgrade-deps/`, `bundles/security-patch/`, `bundles/docs-sync/`
 
+### Configuration Files
+- `GUIDE.md`: Root-level workflow instructions (used when bundle doesn't have its own GUIDE.md)
+
 ### Directory Structure
+- `bundles/`: Task scenario bundles (each bundle contains target.yml, task.md, etc.)
 - `workspace/`: Auto-managed repository clones with upstream remotes
 - `tasks/`: Generated task files (format: `001_repo_branch.md`)
-- `logs/`: Execution logs (when using `--save-logs`)
-- `bundles/`: Task scenario bundles (NEW)
+- `logs/`: Execution logs (automatically enabled in parallel mode)
 
 ## Configuration Format
 
@@ -63,8 +62,8 @@ bundles/scenario-name/
 ### Task File Template
 Each generated task file contains:
 - Repository metadata (org, repo, branch, workspace path)
-- Workflow guide (from GUIDE.md - bundle-specific if available, otherwise root)
-- Task description (from task.md - either root or bundle)
+- Workflow guide (from bundle's GUIDE.md if available, otherwise root GUIDE.md)
+- Task description (from bundle's task.md)
 
 ## Automation Workflow
 
@@ -92,15 +91,7 @@ zx gen-and-run-tasks.mjs --bundle bundles/my-task
 npm start -- --bundle bundles/my-task
 ```
 
-### Standard Workflow (Root Configuration)
-
-```bash
-zx gen-and-run-tasks.mjs              # Generate and execute all tasks
-zx gen-and-run-tasks.mjs --save-logs  # With logging
-zx gen-and-run-tasks.mjs --parallel   # Execute tasks in parallel
-```
-
-### Bundle Workflow (Recommended)
+### Basic Workflow
 
 ```bash
 zx gen-and-run-tasks.mjs --bundle bundles/upgrade-deps     # Execute dependency update bundle
@@ -115,15 +106,20 @@ zx gen-and-run-tasks.mjs --bundle bundles/security-patch --parallel --max-jobs 2
 ### Advanced Options
 
 ```bash
-zx gen-and-run-tasks.mjs --generate-only                    # Only generate task files
-zx gen-and-run-tasks.mjs --run-only                         # Execute existing tasks
-zx gen-and-run-tasks.mjs --bundle bundles/scenario --generate-only  # Generate from bundle only
-zx gen-and-run-tasks.mjs --bundle bundles/scenario --guide-file custom-guide.md  # Bundle + custom guide
+# Generate task files only (no execution)
+zx gen-and-run-tasks.mjs --bundle bundles/my-task --generate-only
 
-# Parallel execution options
-zx gen-and-run-tasks.mjs --parallel                         # Default 4 concurrent repository groups
-zx gen-and-run-tasks.mjs --parallel --max-jobs 8           # Custom concurrency level
-zx gen-and-run-tasks.mjs --bundle bundles/upgrade-deps --parallel --max-jobs 2  # Bundle + parallel
+# Execute existing task files (skip generation)
+zx gen-and-run-tasks.mjs --bundle bundles/my-task --run-only
+
+# Custom guide file
+zx gen-and-run-tasks.mjs --bundle bundles/my-task --guide-file custom-guide.md
+
+# Parallel execution with custom concurrency
+zx gen-and-run-tasks.mjs --bundle bundles/my-task --parallel --max-jobs 8
+
+# Save logs (automatically enabled in parallel mode)
+zx gen-and-run-tasks.mjs --bundle bundles/my-task --save-logs
 ```
 
 ## Git Integration
@@ -137,20 +133,13 @@ The system automatically:
 
 ## Configuration System
 
-The system supports JSON-based configuration files to set default behavior:
-
-### Configuration Files
-
-1. **Root Configuration** (`config.json`): Default settings for all executions
-2. **Bundle Configuration** (`bundles/scenario/config.json`): Bundle-specific overrides
-
 ### Bundle Files
 
 Bundles can include any combination of these files:
 - `target.yml` (required): Repository and branch configuration
 - `task.md` (required): Task description and requirements
 - `GUIDE.md` (optional): Bundle-specific workflow instructions
-- `config.json` (optional): Bundle-specific configuration overrides
+- `config.json` (optional): Bundle-specific configuration
 
 ### Configuration Schema
 
@@ -161,7 +150,8 @@ Bundles can include any combination of these files:
   "saveLogs": false,
   "generateOnly": false,
   "runOnly": false,
-  "guideFile": "GUIDE.md"
+  "guideFile": "GUIDE.md",
+  "shallowClone": true
 }
 ```
 
@@ -169,35 +159,24 @@ Bundles can include any combination of these files:
 
 The system applies configuration in this priority order:
 1. **Command line options** (highest priority)
-2. **Bundle-specific config.json** 
-3. **Root config.json**
-4. **Built-in defaults** (lowest priority)
+2. **Bundle-specific config.json**
+3. **Built-in defaults** (lowest priority)
 
-### Examples
+### Example
 
-**Root Configuration** (`config.json`):
+**Bundle Configuration** (`bundles/security-patch/config.json`):
 ```json
 {
   "parallel": true,
-  "maxJobs": 2,
-  "saveLogs": true,
-  "guideFile": "GUIDE.md"
-}
-```
-
-**Bundle-specific Override** (`bundles/security-patch/config.json`):
-```json
-{
   "maxJobs": 8,
-  "generateOnly": true
+  "saveLogs": true
 }
 ```
 
-With these configs, running the script with `--bundle bundles/security-patch` would use:
-- `maxJobs: 8` (from bundle config)
-- `generateOnly: true` (from bundle config)
-- `parallel: true` and `saveLogs: true` (from root config)
+With this config, running `--bundle bundles/security-patch` would use:
+- `parallel: true`, `maxJobs: 8`, `saveLogs: true` (from bundle config)
 - Command line options would override any of these
+- Any unspecified options use built-in defaults
 
 ## Requirements
 
@@ -221,6 +200,10 @@ claude --version
 
 # Install dependencies (first time only)
 npm install
+
+# Create your first bundle
+mkdir -p bundles/my-task
+# Add target.yml and task.md to the bundle directory
 
 # Run your first task
 zx gen-and-run-tasks.mjs --bundle bundles/my-task
@@ -258,6 +241,6 @@ npm start -- --bundle bundles/my-task
 
 ---
 
-This tool is designed for batch operations like dependency updates, security patches, documentation synchronization, and configuration standardization across repository ecosystems. The bundle system enables organized, reusable task scenarios for efficient multi-repository management.
+This tool is designed for batch operations like dependency updates, security patches, documentation synchronization, and configuration standardization across repository ecosystems. All tasks are organized using bundles for better organization, reusability, and maintainability.
 
 Built with modern JavaScript using Google's Zx framework for maintainability, cross-platform compatibility, and excellent developer experience.

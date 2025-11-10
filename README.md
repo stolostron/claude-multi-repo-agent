@@ -50,11 +50,15 @@ claude --version
 ### Your First Task
 
 ```bash
+# Create a bundle directory with target.yml and task.md
+mkdir -p bundles/my-task
+# Add your configuration files to bundles/my-task/
+
 # Generate and execute tasks
-npm start
+npm start -- --bundle bundles/my-task
 
 # Or use zx directly
-zx gen-and-run-tasks.mjs
+zx gen-and-run-tasks.mjs --bundle bundles/my-task
 ```
 
 ## 📖 Usage
@@ -62,23 +66,48 @@ zx gen-and-run-tasks.mjs
 ### Using Zx Directly
 
 ```bash
-# All-in-one execution
-zx gen-and-run-tasks.mjs
+# Basic execution (bundle is required)
+zx gen-and-run-tasks.mjs --bundle bundles/my-task
 
 # Parallel execution for faster processing
-zx gen-and-run-tasks.mjs --parallel
-
-# Bundle execution
-zx gen-and-run-tasks.mjs --bundle bundles/upgrade-deps
+zx gen-and-run-tasks.mjs --bundle bundles/upgrade-deps --parallel
 
 # Step-by-step execution
-zx gen-and-run-tasks.mjs --generate-only
-zx gen-and-run-tasks.mjs --run-only
+zx gen-and-run-tasks.mjs --bundle bundles/my-task --generate-only
+zx gen-and-run-tasks.mjs --bundle bundles/my-task --run-only
+
+# With custom concurrency
+zx gen-and-run-tasks.mjs --bundle bundles/my-task --parallel --max-jobs 8
 ```
 
 ## ⚙️ Configuration
 
-### Repository Configuration (target.yml)
+All tasks are organized using bundles. Each bundle is a self-contained directory with its own configuration.
+
+### Bundle Organization
+
+Organize task scenarios using bundles:
+
+```
+bundles/
+├── upgrade-deps/
+│   ├── target.yml      # Repositories for dependency updates (REQUIRED)
+│   ├── task.md         # Dependency upgrade instructions (REQUIRED)
+│   ├── GUIDE.md        # Bundle-specific workflow (optional)
+│   └── config.json     # Bundle-specific configuration (optional)
+├── security-patch/
+│   ├── target.yml      # REQUIRED
+│   ├── task.md         # REQUIRED
+│   ├── GUIDE.md        # optional
+│   └── config.json     # optional
+└── docs-sync/
+    ├── target.yml      # REQUIRED
+    ├── task.md         # REQUIRED
+    ├── GUIDE.md        # optional
+    └── config.json     # optional
+```
+
+### Repository Configuration (bundles/*/target.yml)
 
 ```yaml
 target:
@@ -90,7 +119,7 @@ target:
     branches: [main]
 ```
 
-### Task Definition (task.md)
+### Task Definition (bundles/*/task.md)
 
 ```markdown
 # Task Description
@@ -104,34 +133,11 @@ Update all package.json files to use Node.js 18 as the minimum version.
 - Ensure tests still pass
 ```
 
-### Bundle Organization
-
-Organize predefined scenarios using bundles:
-
-```
-bundles/
-├── upgrade-deps/
-│   ├── target.yml      # Repositories for dependency updates
-│   ├── task.md         # Dependency upgrade instructions
-│   ├── GUIDE.md        # Bundle-specific workflow (optional)
-│   └── config.json     # Bundle-specific configuration (optional)
-├── security-patch/
-│   ├── target.yml
-│   ├── task.md
-│   ├── GUIDE.md
-│   └── config.json
-└── docs-sync/
-    ├── target.yml
-    ├── task.md
-    ├── GUIDE.md
-    └── config.json
-```
-
 ### Configuration System
 
-Create `config.json` to set default behavior:
+Each bundle can have its own `config.json` to set default behavior:
 
-**Root Configuration** (`config.json`):
+**Bundle Configuration** (`bundles/scenario/config.json`):
 
 ```json
 {
@@ -143,22 +149,13 @@ Create `config.json` to set default behavior:
 }
 ```
 
-**Bundle Configuration** (`bundles/scenario/config.json`):
-
-```json
-{
-  "maxJobs": 8,
-  "generateOnly": false
-}
-```
-
-**Configuration Priority**: CLI options > Bundle config > Root config > Defaults
+**Configuration Priority**: CLI options > Bundle config > Defaults
 
 ## 📋 Command Options
 
 | Option              | Description                                                        |
 | ------------------- | ------------------------------------------------------------------ |
-| `--bundle PATH`     | Specify bundle directory to read target.yml and task.md from       |
+| `--bundle PATH`     | Bundle directory containing target.yml and task.md (REQUIRED)      |
 | `--guide-file FILE` | Specify custom guide file (default: GUIDE.md)                      |
 | `--generate-only`   | Only generate task files, don't execute them                       |
 | `--run-only`        | Execute existing task files without regenerating                   |
@@ -181,15 +178,12 @@ claude-multi-repo-agent/
 │   ├── repository.mjs     # Repository operations
 │   ├── taskgen.mjs        # Task file generation
 │   └── utils.mjs          # Utility functions
-├── target.yml              # Repository and branch configuration
-├── task.md                 # Task description
-├── config.json             # Global configuration (optional)
-├── GUIDE.md                # Default workflow guidelines
+├── GUIDE.md                # Root workflow guidelines (optional)
 ├── CLAUDE.md               # Project instructions for Claude
-├── bundles/                # Task scenario bundles
+├── bundles/                # Task scenario bundles (REQUIRED)
 │   ├── upgrade-deps/
-│   │   ├── target.yml
-│   │   ├── task.md
+│   │   ├── target.yml     # REQUIRED
+│   │   ├── task.md        # REQUIRED
 │   │   ├── GUIDE.md       # Optional
 │   │   └── config.json    # Optional
 │   ├── security-patch/

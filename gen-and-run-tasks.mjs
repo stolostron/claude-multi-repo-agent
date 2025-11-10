@@ -39,11 +39,9 @@ async function main() {
     const paths = await resolveFilePaths(cliOptions.bundle, config.guideFile);
 
     // Display configuration info
-    if (cliOptions.bundle) {
-      console.log(`📦 Using bundle: ${cliOptions.bundle}`);
-      if (paths.bundleGuide) {
-        console.log(`📋 Using bundle-specific guide: ${paths.guideFile}`);
-      }
+    console.log(`📦 Using bundle: ${cliOptions.bundle}`);
+    if (paths.bundleGuide) {
+      console.log(`📋 Using bundle-specific guide: ${paths.guideFile}`);
     }
 
     // GENERATION SECTION
