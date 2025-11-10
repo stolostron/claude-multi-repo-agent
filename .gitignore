@@ -23,11 +23,11 @@ venv.bak/
 workspace/
 tasks/
 logs/
-bundles/
-task.md
-target.yml
+
+# Local configuration overrides (users can customize)
 config.json
 
 # Override global gitignore to track CLAUDE.md
 !CLAUDE.md
 !bundles-example/**
+!bundles/**
