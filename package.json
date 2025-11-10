@@ -1,0 +1,29 @@
+{
+  "name": "claude-multi-repo-agent",
+  "version": "2.0.0",
+  "description": "Automated system for executing Claude Code tasks across multiple GitHub repositories",
+  "type": "module",
+  "scripts": {
+    "start": "zx gen-and-run-tasks.mjs",
+    "gen": "zx gen-and-run-tasks.mjs --generate-only",
+    "run": "zx gen-and-run-tasks.mjs --run-only"
+  },
+  "keywords": [
+    "claude",
+    "automation",
+    "multi-repo",
+    "github"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "zx": "^8.2.4",
+    "yaml": "^2.6.1",
+    "chalk": "^5.3.0",
+    "p-limit": "^6.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

@@ -11,14 +11,21 @@ This project provides an automated system for executing Claude Code tasks across
 - Organizes task scenarios using predefined bundles
 - Generates individual task files for each target repository-branch combination
 - Leverages Claude Code for intelligent task execution
+- Built with modern JavaScript using Google's Zx framework
 
 ## Key Components
 
-### Core Files
-- `gen-and-run-tasks.sh`: Main automation script (generate + execute)
+### Main Script
+- **Main script**: `gen-and-run-tasks.mjs`
+- **Requirements**: Node.js 18+, `gh` CLI, `claude` CLI
+- **Built-in features**: YAML/JSON parsing, colored output, intelligent concurrency control
+- **Documentation**: See [README-ZX.md](README-ZX.md), [QUICKSTART-ZX.md](QUICKSTART-ZX.md)
+
+### Core Configuration Files
 - `target.yml`: Repository and branch configuration (root mode)
 - `task.md`: Task description and requirements (root mode)
 - `GUIDE.md`: Optional workflow instructions
+- `config.json`: Optional configuration overrides
 
 ### Bundle Organization
 - `bundles/`: Directory containing task scenario bundles
@@ -77,35 +84,46 @@ Each generated task file contains:
 
 ## Usage Patterns
 
-### Standard Workflow (Root Configuration)
+### Quick Start
+
 ```bash
-./gen-and-run-tasks.sh              # Generate and execute all tasks
-./gen-and-run-tasks.sh --save-logs  # With logging
-./gen-and-run-tasks.sh --parallel   # Execute tasks in parallel (auto-enables logging)
+zx gen-and-run-tasks.mjs --bundle bundles/my-task
+# or using npm
+npm start -- --bundle bundles/my-task
+```
+
+### Standard Workflow (Root Configuration)
+
+```bash
+zx gen-and-run-tasks.mjs              # Generate and execute all tasks
+zx gen-and-run-tasks.mjs --save-logs  # With logging
+zx gen-and-run-tasks.mjs --parallel   # Execute tasks in parallel
 ```
 
 ### Bundle Workflow (Recommended)
+
 ```bash
-./gen-and-run-tasks.sh --bundle bundles/upgrade-deps     # Execute dependency update bundle
-./gen-and-run-tasks.sh --bundle bundles/security-patch  # Execute security patch bundle
-./gen-and-run-tasks.sh --bundle bundles/docs-sync       # Execute documentation sync bundle
+zx gen-and-run-tasks.mjs --bundle bundles/upgrade-deps     # Execute dependency update bundle
+zx gen-and-run-tasks.mjs --bundle bundles/security-patch  # Execute security patch bundle
+zx gen-and-run-tasks.mjs --bundle bundles/docs-sync       # Execute documentation sync bundle
 
 # Parallel execution for faster processing
-./gen-and-run-tasks.sh --bundle bundles/upgrade-deps --parallel
-./gen-and-run-tasks.sh --bundle bundles/security-patch --parallel --max-jobs 2
+zx gen-and-run-tasks.mjs --bundle bundles/upgrade-deps --parallel
+zx gen-and-run-tasks.mjs --bundle bundles/security-patch --parallel --max-jobs 2
 ```
 
 ### Advanced Options
+
 ```bash
-./gen-and-run-tasks.sh --generate-only                    # Only generate task files
-./gen-and-run-tasks.sh --run-only                         # Execute existing tasks
-./gen-and-run-tasks.sh --bundle bundles/scenario --generate-only  # Generate from bundle only
-./gen-and-run-tasks.sh --bundle bundles/scenario --guide-file custom-guide.md  # Bundle + custom guide
+zx gen-and-run-tasks.mjs --generate-only                    # Only generate task files
+zx gen-and-run-tasks.mjs --run-only                         # Execute existing tasks
+zx gen-and-run-tasks.mjs --bundle bundles/scenario --generate-only  # Generate from bundle only
+zx gen-and-run-tasks.mjs --bundle bundles/scenario --guide-file custom-guide.md  # Bundle + custom guide
 
 # Parallel execution options
-./gen-and-run-tasks.sh --parallel                         # Default 4 concurrent repository groups
-./gen-and-run-tasks.sh --parallel --max-jobs 8           # Custom concurrency level
-./gen-and-run-tasks.sh --bundle bundles/upgrade-deps --parallel --max-jobs 2  # Bundle + parallel
+zx gen-and-run-tasks.mjs --parallel                         # Default 4 concurrent repository groups
+zx gen-and-run-tasks.mjs --parallel --max-jobs 8           # Custom concurrency level
+zx gen-and-run-tasks.mjs --bundle bundles/upgrade-deps --parallel --max-jobs 2  # Bundle + parallel
 ```
 
 ## Git Integration
@@ -175,7 +193,7 @@ The system applies configuration in this priority order:
 }
 ```
 
-With these configs, running `./gen-and-run-tasks.sh --bundle bundles/security-patch` would use:
+With these configs, running the script with `--bundle bundles/security-patch` would use:
 - `maxJobs: 8` (from bundle config)
 - `generateOnly: true` (from bundle config)
 - `parallel: true` and `saveLogs: true` (from root config)
@@ -183,11 +201,40 @@ With these configs, running `./gen-and-run-tasks.sh --bundle bundles/security-pa
 
 ## Requirements
 
-- Claude Code CLI (authenticated)
-- GitHub CLI `gh` (authenticated)
-- `yq` (optional, for better YAML parsing)
-- `jq` (optional, for better JSON parsing)
-- Bash shell environment
+- **Claude Code CLI** (authenticated) - `claude --version`
+- **GitHub CLI** `gh` (authenticated) - `gh auth status`
+- **Node.js** 18.0.0 or higher - `node --version`
+- **NPM** 9.0.0 or higher - `npm --version`
+- **Dependencies**: Auto-installed via `npm install`
+  - `zx` - Google Zx framework
+  - `yaml` - YAML parsing
+  - `chalk` - Colored output
+  - `p-limit` - Concurrency control
+
+## Getting Started
+
+```bash
+# Check requirements
+node --version  # Should be 18.0+
+gh auth status
+claude --version
+
+# Install dependencies (first time only)
+npm install
+
+# Run your first task
+zx gen-and-run-tasks.mjs --bundle bundles/my-task
+# or
+npm start -- --bundle bundles/my-task
+```
+
+## Documentation
+
+- **Main Documentation**: This file (CLAUDE.md)
+- **User Guide**: [README-ZX.md](README-ZX.md)
+- **Quick Start**: [QUICKSTART-ZX.md](QUICKSTART-ZX.md)
+- **Technical Details**: [ZX-IMPLEMENTATION-SUMMARY.md](ZX-IMPLEMENTATION-SUMMARY.md)
+- **File Extension Explained**: [MJS-vs-JS-EXPLAINED.md](MJS-vs-JS-EXPLAINED.md)
 
 ## Bundle Examples
 
@@ -212,3 +259,5 @@ With these configs, running `./gen-and-run-tasks.sh --bundle bundles/security-pa
 ---
 
 This tool is designed for batch operations like dependency updates, security patches, documentation synchronization, and configuration standardization across repository ecosystems. The bundle system enables organized, reusable task scenarios for efficient multi-repository management.
+
+Built with modern JavaScript using Google's Zx framework for maintainability, cross-platform compatibility, and excellent developer experience.
