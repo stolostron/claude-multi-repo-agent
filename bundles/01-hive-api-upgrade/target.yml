@@ -1,4 +1,0 @@
-target:
-  - org: stolostron
-    repos: [managedcluster-import-controller, multicloud-operators-foundation]
-    branches: [main]

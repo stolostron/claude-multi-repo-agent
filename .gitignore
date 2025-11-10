@@ -20,6 +20,7 @@ ENV/
 env.bak/
 venv.bak/
 
+bundles/**
 workspace/
 tasks/
 logs/
@@ -27,4 +28,3 @@ logs/
 # Override global gitignore to track CLAUDE.md
 !CLAUDE.md
 !bundles-example/**
-!bundles/**
