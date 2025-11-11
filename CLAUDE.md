@@ -6,10 +6,10 @@ This project provides an automated system for executing Claude Code tasks across
 
 **Claude Multi-Repo Agent** is a universal automation toolkit that:
 - Executes tasks across multiple GitHub repositories and branches
-- **Supports parallel execution** for faster processing across repository groups
+- **Uses git worktrees for true parallel execution** - even same repo, different branches can run concurrently
 - Automatically manages repository forks and clones
 - Organizes task scenarios using predefined bundles
-- Generates individual task files for each target repository-branch combination
+- Creates isolated worktree environments for each task
 - Leverages Claude Code for intelligent task execution
 - Built with modern JavaScript using Google's Zx framework
 
@@ -35,9 +35,12 @@ All tasks are organized using bundles. Each bundle is a directory containing:
 
 ### Directory Structure
 - `bundles/`: Task scenario bundles (each bundle contains target.yml, task.md, etc.)
-- `workspace/`: Auto-managed repository clones with upstream remotes
-- `tasks/`: Generated task files (format: `001_repo_branch.md`)
-- `logs/`: Execution logs (automatically enabled in parallel mode)
+- `workspace/`: Auto-managed repository clones (main repos for worktree creation)
+- `tasks/`: Generated task directories (format: `001_repo_branch/`)
+  - Each task directory contains:
+    - `<repo-name>/`: Git worktree with repository code on the specified branch
+    - `task.md`: Task instructions and metadata at the root level
+    - `execution.log`: Claude Code execution output at the root level
 
 ## Configuration Format
 
@@ -59,27 +62,52 @@ bundles/scenario-name/
 └── config.json   # Bundle-specific configuration overrides (optional)
 ```
 
-### Task File Template
-Each generated task file contains:
-- Repository metadata (org, repo, branch, workspace path)
-- Workflow guide (from bundle's GUIDE.md if available, otherwise root GUIDE.md)
-- Task description (from bundle's task.md)
+### Task Worktree Structure
+Each generated task directory contains:
+```
+tasks/001_repo_branch/
+├── <repo-name>/           # Repository code in git worktree subdirectory
+│   ├── .git               # Git worktree metadata
+│   ├── go.mod, main.go    # All repository files
+│   └── ...
+├── task.md                # Task description and metadata (at root)
+└── execution.log          # Claude execution output (at root)
+```
+
+**Structure explanation:**
+- **Task Directory**: Parent directory (tasks/001_repo_branch/)
+- **Repository Subdirectory**: Git worktree with repository code
+- **task.md**: Contains repository metadata, workflow guide, and task description
+  - Repository metadata (org, repo, branch, task directory, repository code path)
+  - Workflow guide (from bundle's GUIDE.md if available, otherwise root GUIDE.md)
+  - Task description (from bundle's task.md)
+- **execution.log**: Claude Code execution output (created after task execution)
 
 ## Automation Workflow
 
 1. **Repository Setup**: Automatically forks and clones repositories if not present in workspace
-2. **Task Generation**: Creates individual task files for each org/repo/branch combination
-3. **Task Execution**: Runs Claude Code on each task file (sequential or parallel)
-   - **Sequential Mode**: Tasks execute one by one (default)
-   - **Parallel Mode**: Repository groups execute concurrently for faster processing
-4. **Progress Tracking**: Provides execution summaries and optional logging
+   - Full clone (not shallow) to support git worktrees
+   - Fetches latest branches from all remotes
+2. **Worktree Generation**: Creates isolated git worktrees for each org/repo/branch combination
+   - Creates task directory first
+   - Creates git worktree in a subdirectory named after the repository
+   - Each worktree is an independent working directory
+   - Worktrees share the .git directory from the main workspace repo
+   - Generates task.md file at task directory root level (outside worktree)
+3. **Task Execution**: Runs Claude Code in each repository subdirectory with configurable concurrency
+   - **Concurrency Control**: Use `--max-jobs N` to control parallelism (default: 4)
+   - **Sequential Mode**: Set `--max-jobs 1` for one-by-one execution
+   - **Parallel Mode**: **All tasks can run concurrently** - no repo-level restrictions
+4. **Progress Tracking**: Provides execution summaries and automatic logging
 
-### Parallel Execution Strategy
+### Git Worktree Architecture
 
-- **Repository-Level Concurrency**: Different repositories can execute in parallel
-- **Branch-Level Safety**: Tasks for the same repository execute sequentially to avoid conflicts
-- **Smart Grouping**: Automatically groups tasks by repository to prevent Git conflicts
-- **Configurable Limits**: Control maximum concurrent jobs with `--max-jobs`
+- **True Parallelization**: Each task runs in its own git worktree
+- **Same-Repo, Different-Branch**: Can execute concurrently without conflicts
+- **Isolated Environments**: Each worktree has independent working files
+- **Shared .git**: All worktrees share the same .git directory (efficient storage)
+- **Manual Recovery**: Failed tasks can be manually fixed by cd'ing into the worktree directory
+- **Flexible Concurrency**: Control parallelism with `--max-jobs` (1 = sequential, >1 = parallel)
 
 ## Usage Patterns
 
@@ -94,13 +122,14 @@ npm start -- --bundle bundles/my-task
 ### Basic Workflow
 
 ```bash
-zx gen-and-run-tasks.mjs --bundle bundles/upgrade-deps     # Execute dependency update bundle
-zx gen-and-run-tasks.mjs --bundle bundles/security-patch  # Execute security patch bundle
-zx gen-and-run-tasks.mjs --bundle bundles/docs-sync       # Execute documentation sync bundle
+# Default: runs with concurrency limit of 4
+zx gen-and-run-tasks.mjs --bundle bundles/upgrade-deps
 
-# Parallel execution for faster processing
-zx gen-and-run-tasks.mjs --bundle bundles/upgrade-deps --parallel
-zx gen-and-run-tasks.mjs --bundle bundles/security-patch --parallel --max-jobs 2
+# Sequential execution (one task at a time)
+zx gen-and-run-tasks.mjs --bundle bundles/security-patch --max-jobs 1
+
+# Higher parallelism for faster processing
+zx gen-and-run-tasks.mjs --bundle bundles/docs-sync --max-jobs 8
 ```
 
 ### Advanced Options
@@ -115,20 +144,69 @@ zx gen-and-run-tasks.mjs --bundle bundles/my-task --run-only
 # Custom guide file
 zx gen-and-run-tasks.mjs --bundle bundles/my-task --guide-file custom-guide.md
 
-# Parallel execution with custom concurrency
-zx gen-and-run-tasks.mjs --bundle bundles/my-task --parallel --max-jobs 8
-
-# Save logs (automatically enabled in parallel mode)
-zx gen-and-run-tasks.mjs --bundle bundles/my-task --save-logs
+# Control concurrency (1 = sequential, higher = more parallel)
+zx gen-and-run-tasks.mjs --bundle bundles/my-task --max-jobs 8
 ```
+
+## Manual Intervention Workflow
+
+One of the key benefits of the worktree architecture is the ability to manually fix failed tasks:
+
+### When a Task Fails
+
+1. **Navigate to the task directory**:
+   ```bash
+   cd tasks/001_repo_branch
+   ```
+
+2. **Check the log file** to understand what went wrong:
+   ```bash
+   cat execution.log
+   ```
+
+3. **Navigate to the repository code**:
+   ```bash
+   cd <repo-name>  # e.g., cd cluster-proxy-addon
+   ```
+
+4. **Fix the issue manually**:
+   - The repository subdirectory contains the full code on the correct branch
+   - Make any necessary changes
+   - Run git commands as needed
+   - Test your changes
+
+5. **Continue or re-run**:
+   - Option A: Continue manually with git commit and PR creation
+     ```bash
+     git add .
+     git commit -s -m "Fix issue"
+     gh pr create ...
+     ```
+   - Option B: Re-run Claude Code:
+     ```bash
+     # Go back to task directory
+     cd ..
+     # Re-run with task.md
+     cat task.md | claude -p "Execute this task" > execution.log 2>&1
+     ```
+
+### Benefits
+
+- **Traceability**: All task state is preserved in the task directory
+- **Clean Separation**: Task metadata and repository code are clearly separated
+- **Flexibility**: Can switch between automated and manual workflows
+- **Debugging**: Easy to inspect logs and modify code independently
+- **No conflicts**: Each task has its own isolated environment
 
 ## Git Integration
 
 The system automatically:
 - Checks for existing repository forks
 - Creates forks if needed using GitHub CLI
-- Clones forked repositories to workspace
+- Clones forked repositories to workspace (full clone for worktree support)
+- Fetches latest branches from all remotes
 - Sets up upstream remotes for PR workflows
+- Creates git worktrees for isolated task execution
 - Handles multiple organizations and repositories
 
 ## Configuration System
@@ -145,13 +223,10 @@ Bundles can include any combination of these files:
 
 ```json
 {
-  "parallel": false,
   "maxJobs": 4,
-  "saveLogs": false,
   "generateOnly": false,
   "runOnly": false,
-  "guideFile": "GUIDE.md",
-  "shallowClone": true
+  "guideFile": "GUIDE.md"
 }
 ```
 
@@ -167,16 +242,15 @@ The system applies configuration in this priority order:
 **Bundle Configuration** (`bundles/security-patch/config.json`):
 ```json
 {
-  "parallel": true,
-  "maxJobs": 8,
-  "saveLogs": true
+  "maxJobs": 8
 }
 ```
 
 With this config, running `--bundle bundles/security-patch` would use:
-- `parallel: true`, `maxJobs: 8`, `saveLogs: true` (from bundle config)
+- `maxJobs: 8` (from bundle config)
 - Command line options would override any of these
 - Any unspecified options use built-in defaults
+- Execution logs are always saved to `execution.log` in each task directory
 
 ## Requirements
 
